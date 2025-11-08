@@ -1,0 +1,19 @@
+{
+  "name": "test-cli-tool",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": "bin/cli.js",
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.10.0",
+    "typescript": "^5.9.3"
+  }
+}

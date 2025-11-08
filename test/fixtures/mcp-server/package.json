@@ -1,0 +1,23 @@
+{
+  "name": "test-mcp-server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": "bin/server.js",
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.21.1"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.10.0",
+    "typescript": "^5.9.3"
+  },
+  "mcpName": "io.test/mcp-server"
+}

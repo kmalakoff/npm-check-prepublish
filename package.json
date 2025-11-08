@@ -1,0 +1,69 @@
+{
+  "name": "npm-check-prepublish",
+  "version": "0.0.0",
+  "description": "Verification tool for npm prepublishing packages (modules, CLI tools, MCP servers)",
+  "keywords": [
+    "npm",
+    "package",
+    "verification",
+    "testing",
+    "mcp",
+    "production",
+    "publish"
+  ],
+  "homepage": "https://github.com/mcp-z/mcp-z#readme",
+  "bugs": {
+    "url": "https://github.com/mcp-z/mcp-z/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcp-z/package-checker.git"
+  },
+  "license": "MIT",
+  "author": "Kevin Malakoff <kmalakoff.info@gmail.com>",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "bin": {
+    "ncp": "bin/cli.js",
+    "npm-check-prepublish": "bin/cli.js"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "scripts": {
+    "build": "npm run typecheck && tsds build",
+    "check": "node bin/cli.js",
+    "format": "biome check --write --unsafe",
+    "prepublishOnly": "tsds validate",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:engines": "nvu engines tsds test:node --no-timeouts 'test/{unit,integration}/**/*.test.ts'",
+    "test:integration": "tsds test:node --no-timeouts 'test/integration/**/*.test.ts'",
+    "test:unit": "tsds test:node --no-timeouts 'test/unit/**/*.test.ts'",
+    "typecheck": "tsc --noEmit",
+    "version": "tsds version"
+  },
+  "dependencies": {
+    "@mcpeasy/cli": "^3.0.15",
+    "@modelcontextprotocol/sdk": "^1.21.1"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.10.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "tsds": {
+    "source": "src/index.ts"
+  }
+}
