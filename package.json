@@ -53,7 +53,7 @@
     "version": "tsds version"
   },
   "dependencies": {
-    "@mcpeasy/cli": "^3.0.15",
+    "@mcpeasy/cli": "^3.0.16",
     "@modelcontextprotocol/sdk": "^1.21.1"
   },
   "devDependencies": {
