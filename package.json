@@ -1,6 +1,6 @@
 {
   "name": "npm-check-prepublish",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Verification tool for npm prepublishing packages (modules, CLI tools, MCP servers)",
   "keywords": [
     "npm",
