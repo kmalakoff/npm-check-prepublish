@@ -9,7 +9,7 @@
 1. **DRY Principle**: Eliminate duplicate code across 5+ server packages
 2. **Flexibility**: Allow customization while providing sensible defaults
 3. **Type Safety**: Fully typed TypeScript API
-4. **Production-Grade**: Use @mcpeasy/cli for robust process management
+4. **Production-Grade**: Use MCP SDK's built-in stdio transport for robust process management
 5. **Easy Migration**: Simple migration path from standalone scripts
 
 ## Core Architecture
@@ -281,13 +281,12 @@ Verifying package structure...
 
 ### Runtime Dependencies
 
-- `@mcpeasy/cli`: Server spawning and management
-- `@modelcontextprotocol/sdk`: MCP client types
-- `dotenv`: Environment file loading
+- `@modelcontextprotocol/sdk`: MCP client and stdio transport
 
-**Why these dependencies?**
-- Already used by all MCP servers
-- Production-tested
+**Why this dependency?**
+- Essential for all MCP servers
+- Provides built-in stdio transport with process management
+- Production-tested and maintained by the MCP team
 - No additional install burden
 
 ### Dev Dependencies
@@ -298,7 +297,7 @@ Verifying package structure...
 ## File Structure
 
 ```
-package-checker/
+npm-check-prepublish/
 ├── src/
 │   ├── index.ts          # Public API exports
 │   ├── types.ts          # TypeScript interfaces

@@ -1,5 +1,5 @@
-import { connectMcpClient, spawnCluster } from '@mcpeasy/cli';
-import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { execSync } from 'child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
@@ -9,7 +9,7 @@ import type { Logger, PackageInfo, VerificationResult, VerifyConfig } from './ty
 const EXCLUDED_PATHS = ['src', 'test', '.env'];
 
 function getTmpDir(): string {
-  const tmpDir = join(tmpdir(), 'package-checker');
+  const tmpDir = join(tmpdir(), 'npm-check-prepublish');
   if (!existsSync(tmpDir)) {
     mkdirSync(tmpDir, { recursive: true });
   }
@@ -442,6 +442,29 @@ export class CheckPrepublish {
     }
   }
 
+  private async spawnMcpServer(command: string, args: string[], env: Record<string, string>): Promise<{ transport: StdioClientTransport; client: Client }> {
+    const transport = new StdioClientTransport({
+      command,
+      args,
+      env,
+      stderr: 'pipe',
+    });
+
+    const client = new Client(
+      {
+        name: 'npm-check-prepublish',
+        version: '1.0.0',
+      },
+      {
+        capabilities: {},
+      }
+    );
+
+    await client.connect(transport);
+
+    return { transport, client };
+  }
+
   private async verifyMcpServer(): Promise<void> {
     this.logger.log(`Type: ${this.getTypeLabel()}`);
 
@@ -452,7 +475,7 @@ export class CheckPrepublish {
 
     let testDir: string | null = null;
     let tarballPath: string | null = null;
-    let cluster: Awaited<ReturnType<typeof spawnCluster>> | null = null;
+    let transport: StdioClientTransport | null = null;
     let client: Client | null = null;
 
     try {
@@ -489,22 +512,13 @@ export class CheckPrepublish {
 
       this.logger.log(`Starting MCP server: ${serverName}`);
 
-      // Start server
-      cluster = await spawnCluster(
-        {
-          mcpServers: {
-            [serverName]: {
-              command: 'node',
-              args: [serverBin],
-              env: { LOG_LEVEL: 'error', NODE_ENV: 'test' },
-            },
-          },
-        },
-        { cwd: testDir }
-      );
-
-      // Connect client
-      client = await connectMcpClient(cluster, serverName);
+      // Start server and connect client
+      const connection = await this.spawnMcpServer('node', [serverBin], {
+        LOG_LEVEL: 'error',
+        NODE_ENV: 'production',
+      });
+      transport = connection.transport;
+      client = connection.client;
       this.logger.log('✅ Server started and connected');
 
       // Run custom tests if provided
@@ -533,9 +547,9 @@ export class CheckPrepublish {
           // Ignore cleanup errors
         }
       }
-      if (cluster) {
+      if (transport) {
         try {
-          await cluster.shutdown('SIGINT', { timeoutMs: 5000 });
+          await transport.close();
         } catch (_err) {
           // Ignore cleanup errors
         }
