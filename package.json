@@ -53,11 +53,11 @@
     "version": "tsds version"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.21.1"
+    "@modelcontextprotocol/sdk": "^1.23.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
-    "@types/node": "^24.10.0"
+    "@types/node": "^24.10.1"
   },
   "engines": {
     "node": ">=22"
