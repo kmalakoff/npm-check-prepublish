@@ -1,5 +1,3 @@
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { execSync } from 'child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
@@ -19,7 +17,15 @@ function getTmpDir(): string {
 export class CheckPrepublish {
   private config: Required<VerifyConfig>;
   private logger: Logger;
-  private packageJson: any;
+  private packageJson: {
+    name: string;
+    version: string;
+    main?: string;
+    module?: string;
+    types?: string;
+    bin?: string | Record<string, string>;
+    scripts?: { build?: string };
+  };
   private packageInfo: PackageInfo;
   private errors: string[] = [];
 
@@ -28,14 +34,12 @@ export class CheckPrepublish {
     this.config = {
       packageDir: config.packageDir || process.cwd(),
       requiredFiles: config.requiredFiles || [],
-      testFile: config.testFile || '',
       logger: this.logger,
       skipBuild: config.skipBuild || false,
       skipCheckRequiredFiles: config.skipCheckRequiredFiles || false,
       skipPackage: config.skipPackage || false,
       skipCheckImport: config.skipCheckImport || false,
       skipCheckBin: config.skipCheckBin || false,
-      skipCheckMcpServer: config.skipCheckMcpServer || false,
     };
 
     // Load and parse package.json
@@ -50,18 +54,6 @@ export class CheckPrepublish {
   }
 
   private detectPackageType(): PackageInfo {
-    // MCP Server: has "mcpName" field
-    if (this.packageJson.mcpName) {
-      return {
-        type: 'mcp-server',
-        name: this.packageJson.name,
-        version: this.packageJson.version,
-        serverName: this.getServerName(),
-        mcpName: this.packageJson.mcpName,
-        main: this.packageJson.main,
-      };
-    }
-
     // CLI Tool: has "bin" field
     if (this.packageJson.bin) {
       return {
@@ -79,25 +71,6 @@ export class CheckPrepublish {
       version: this.packageJson.version,
       main: this.packageJson.main,
     };
-  }
-
-  private getServerName(): string {
-    // PRIMARY: Extract from mcpName
-    if (this.packageJson.mcpName) {
-      // "io.github.kmalakoff/mcp-pdf" -> "mcp-pdf"
-      const parts = this.packageJson.mcpName.split('/');
-      return parts[parts.length - 1] || this.packageJson.mcpName;
-    }
-
-    // FALLBACK: Extract from package name
-    const name = this.packageJson.name;
-    if (name.startsWith('@')) {
-      // "@mcpeasy/mcp-pdf" -> "mcp-pdf"
-      const parts = name.split('/');
-      return parts[1] || name;
-    }
-
-    return name;
   }
 
   private getRequiredFiles(): string[] {
@@ -129,9 +102,6 @@ export class CheckPrepublish {
     this.logger.log('\n=========================================');
     this.logger.log(`Verifying ${this.packageInfo.name} v${this.packageInfo.version}`);
     this.logger.log(`Type: ${this.getTypeLabel()}`);
-    if (this.packageInfo.serverName) {
-      this.logger.log(`Server Name: ${this.packageInfo.serverName}`);
-    }
     this.logger.log('=========================================\n');
 
     // Step 1: Build Verification
@@ -169,8 +139,6 @@ export class CheckPrepublish {
 
   private getTypeLabel(): string {
     switch (this.packageInfo.type) {
-      case 'mcp-server':
-        return 'MCP Server';
       case 'cli':
         return 'CLI Tool';
       case 'module':
@@ -350,9 +318,6 @@ export class CheckPrepublish {
       case 'cli':
         await this.verifyCliExecution();
         break;
-      case 'mcp-server':
-        await this.verifyMcpServer();
-        break;
     }
   }
 
@@ -439,135 +404,6 @@ export class CheckPrepublish {
       const err = new Error(`CLI execution failed: ${error}`);
       this.errors.push(err.message);
       this.logger.log('❌ CLI execution failed\n');
-    }
-  }
-
-  private async spawnMcpServer(command: string, args: string[], env: Record<string, string>): Promise<{ transport: StdioClientTransport; client: Client }> {
-    const transport = new StdioClientTransport({
-      command,
-      args,
-      env,
-      stderr: 'pipe',
-    });
-
-    const client = new Client(
-      {
-        name: 'npm-check-prepublish',
-        version: '1.0.0',
-      },
-      {
-        capabilities: {},
-      }
-    );
-
-    await client.connect(transport);
-
-    return { transport, client };
-  }
-
-  private async verifyMcpServer(): Promise<void> {
-    this.logger.log(`Type: ${this.getTypeLabel()}`);
-
-    if (this.config.skipCheckMcpServer) {
-      this.logger.log('Skipped (--no-check-mcp-server)\n');
-      return;
-    }
-
-    let testDir: string | null = null;
-    let tarballPath: string | null = null;
-    let transport: StdioClientTransport | null = null;
-    let client: Client | null = null;
-
-    try {
-      // Create temp directory and install package
-      testDir = mkdtempSync(join(getTmpDir(), 'pkg-check-'));
-      const tarball = execSync('npm pack --silent', {
-        cwd: this.config.packageDir,
-        encoding: 'utf-8',
-      }).trim();
-      tarballPath = join(this.config.packageDir, tarball);
-
-      // Create package.json in install directory so npm doesn't walk up to project root
-      execSync('npm init -y', { cwd: testDir, stdio: 'pipe' });
-
-      execSync(`npm install "${tarballPath}" --production --loglevel=error`, {
-        cwd: testDir,
-        stdio: 'pipe',
-      });
-
-      const packageDir = this.getInstalledPackagePath(testDir);
-      // Handle both string and object bin field formats
-      let binPath = 'bin/server.js';
-      if (this.packageJson.bin) {
-        if (typeof this.packageJson.bin === 'string') {
-          binPath = this.packageJson.bin;
-        } else if (typeof this.packageJson.bin === 'object') {
-          // For object format, take the first bin entry
-          const firstBin = Object.values(this.packageJson.bin)[0];
-          binPath = typeof firstBin === 'string' ? firstBin : 'bin/server.js';
-        }
-      }
-      const serverBin = join(packageDir, binPath);
-      const serverName = this.packageInfo.serverName || this.packageInfo.name;
-
-      this.logger.log(`Starting MCP server: ${serverName}`);
-
-      // Start server and connect client
-      const connection = await this.spawnMcpServer('node', [serverBin], {
-        LOG_LEVEL: 'error',
-        NODE_ENV: 'production',
-      });
-      transport = connection.transport;
-      client = connection.client;
-      this.logger.log('✅ Server started and connected');
-
-      // Run custom tests if provided
-      if (this.config.testFile) {
-        this.logger.log(`Running custom tests from ${this.config.testFile}`);
-        const tests = await import(join(this.config.packageDir, this.config.testFile));
-        if (tests.testMcpServer) {
-          await tests.testMcpServer(client);
-          this.logger.log('✅ Custom tests passed\n');
-        } else {
-          this.logger.log('No testMcpServer function found in test file\n');
-        }
-      } else {
-        this.logger.log('');
-      }
-    } catch (error) {
-      const err = new Error(`MCP server verification failed: ${error}`);
-      this.errors.push(err.message);
-      this.logger.log('❌ MCP server verification failed\n');
-    } finally {
-      // Cleanup
-      if (client) {
-        try {
-          await client.close();
-        } catch (_err) {
-          // Ignore cleanup errors
-        }
-      }
-      if (transport) {
-        try {
-          await transport.close();
-        } catch (_err) {
-          // Ignore cleanup errors
-        }
-      }
-      if (testDir) {
-        try {
-          rmSync(testDir, { recursive: true, force: true });
-        } catch (err) {
-          this.logger.log(`Warning: Failed to cleanup test directory: ${err}`);
-        }
-      }
-      if (tarballPath) {
-        try {
-          rmSync(tarballPath, { force: true });
-        } catch (err) {
-          this.logger.log(`Warning: Failed to cleanup tarball: ${err}`);
-        }
-      }
     }
   }
 }

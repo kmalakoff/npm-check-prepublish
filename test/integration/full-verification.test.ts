@@ -52,22 +52,6 @@ describe('Full Package Verification', () => {
     assert.equal(result.packageInfo?.type, 'cli');
   });
 
-  it('should check MCP server successfully', async () => {
-    copyFixture('mcp-server', tempDir);
-
-    // Install dependencies first
-    runCommand('npm install', tempDir);
-
-    const checker = new CheckPrepublish({ packageDir: tempDir });
-    const result = await checker.check();
-
-    assert.equal(result.success, true, 'MCP server verification should succeed');
-    assert.equal(result.errors.length, 0, 'Should have no errors');
-    assert.equal(result.packageInfo?.name, 'test-mcp-server');
-    assert.equal(result.packageInfo?.type, 'mcp-server');
-    assert.equal(result.packageInfo?.mcpName, 'io.test/mcp-server');
-  });
-
   it('should handle verification with skipBuild option', async () => {
     copyFixture('minimal-module', tempDir);
 
