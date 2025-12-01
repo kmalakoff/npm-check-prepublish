@@ -1,14 +1,12 @@
 /**
  * Package type detection
  */
-export type PackageType = 'module' | 'cli' | 'mcp-server';
+export type PackageType = 'module' | 'cli';
 
 export interface PackageInfo {
   type: PackageType;
   name: string;
   version: string;
-  serverName?: string; // Only for MCP servers
-  mcpName?: string; // Only for MCP servers
   main?: string; // Main entry point
 }
 
@@ -27,11 +25,6 @@ export interface VerifyConfig {
    * @default []
    */
   requiredFiles?: string[];
-
-  /**
-   * Path to custom test file (NO DEFAULT)
-   */
-  testFile?: string;
 
   /**
    * Custom logger instance
@@ -68,12 +61,6 @@ export interface VerifyConfig {
    * @default false
    */
   skipCheckBin?: boolean;
-
-  /**
-   * Skip MCP server startup check
-   * @default false
-   */
-  skipCheckMcpServer?: boolean;
 }
 
 /**
