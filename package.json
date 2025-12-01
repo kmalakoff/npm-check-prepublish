@@ -1,13 +1,12 @@
 {
   "name": "npm-check-prepublish",
   "version": "0.1.1",
-  "description": "Verification tool for npm prepublishing packages (modules, CLI tools, MCP servers)",
+  "description": "Verification tool for npm prepublishing packages (modules, CLI tools)",
   "keywords": [
     "npm",
     "package",
     "verification",
     "testing",
-    "mcp",
     "production",
     "publish"
   ],
@@ -52,12 +51,12 @@
     "typecheck": "tsc --noEmit",
     "version": "tsds version"
   },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.21.1"
-  },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "^24.10.0"
+    "@biomejs/biome": "*",
+    "@types/mocha": "*",
+    "@types/node": "*",
+    "node-version-use": "*",
+    "ts-dev-stack": "*"
   },
   "engines": {
     "node": ">=22"

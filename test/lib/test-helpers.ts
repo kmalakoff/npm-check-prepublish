@@ -53,7 +53,8 @@ export function runCommand(cmd: string, cwd: string): { stdout: string; exitCode
   try {
     const stdout = execSync(cmd, { cwd, encoding: 'utf8', stdio: 'pipe' });
     return { stdout, exitCode: 0 };
-  } catch (error: any) {
-    return { stdout: error.stdout || '', exitCode: error.status || 1 };
+  } catch (error: unknown) {
+    const execError = error as { stdout?: string; status?: number };
+    return { stdout: execError.stdout || '', exitCode: execError.status || 1 };
   }
 }
