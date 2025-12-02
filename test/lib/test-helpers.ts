@@ -3,24 +3,23 @@
  */
 
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync, mkdtempSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import { cpSync, rimrafSync } from '../../src/fs-compat.js';
+import { existsSync } from 'fs';
+import path from 'path';
+import url from 'url';
+import { cpSync, mkdirpSync, mkdtempSync, rimrafSync } from '../../src/fs-compat.ts';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname1 = path.dirname(typeof __filename !== 'undefined' ? __filename : url.fileURLToPath(import.meta.url));
 
 // Use project .tmp directory instead of system temp
-const PROJECT_ROOT = join(__dirname, '../..');
-const TMP_DIR = join(PROJECT_ROOT, '.tmp');
+const PROJECT_ROOT = path.join(__dirname1, '../..');
+const TMP_DIR = path.join(PROJECT_ROOT, '.tmp');
 
 /**
  * Ensure .tmp directory exists
  */
 function ensureTmpDir(): void {
   if (!existsSync(TMP_DIR)) {
-    mkdirSync(TMP_DIR, { recursive: true });
+    mkdirpSync(TMP_DIR);
   }
 }
 
@@ -29,7 +28,7 @@ function ensureTmpDir(): void {
  */
 export function createTempDir(prefix: string): string {
   ensureTmpDir();
-  return mkdtempSync(join(TMP_DIR, prefix));
+  return mkdtempSync(path.join(TMP_DIR, prefix));
 }
 
 /**
@@ -43,7 +42,7 @@ export function cleanupTempDir(dir: string): void {
  * Copy fixture to temp location
  */
 export function copyFixture(fixtureName: string, destDir: string): void {
-  const fixturePath = join(__dirname, '../fixtures', fixtureName);
+  const fixturePath = path.join(__dirname1, '../fixtures', fixtureName);
   cpSync(fixturePath, destDir, { recursive: true });
 }
 

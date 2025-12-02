@@ -52,17 +52,21 @@
     "version": "tsds version"
   },
   "dependencies": {
-    "rimraf2": "*"
+    "mkdirp-classic": "*",
+    "rimraf2": "*",
+    "temp-suffix": "*"
   },
   "devDependencies": {
     "@biomejs/biome": "*",
     "@types/mocha": "*",
     "@types/node": "*",
+    "array-find": "*",
+    "end-with": "*",
     "node-version-use": "*",
     "ts-dev-stack": "*"
   },
   "engines": {
-    "node": ">=12"
+    "node": ">=0.12"
   },
   "tsds": {
     "source": "src/index.ts"

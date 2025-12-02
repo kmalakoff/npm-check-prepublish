@@ -3,7 +3,9 @@
  * Grouped together since these operations are tightly coupled
  */
 
+import find from 'array-find';
 import assert from 'assert';
+import endsWith from 'end-with';
 import { existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../../lib/test-helpers.ts';
@@ -32,9 +34,9 @@ describe.only('Package Operations', () => {
 
     // Verify tarball was created
     const files = readdirSync(tempDir);
-    const tarball = files.find((f) => f.endsWith('.tgz'));
+    const tarball = find(files, (f: string) => endsWith(f, '.tgz'));
     assert.ok(tarball, 'Tarball file should exist');
-    assert.ok(tarball?.includes('test-minimal-module'), 'Tarball should have package name');
+    assert.ok(tarball && tarball.indexOf('test-minimal-module') >= 0, 'Tarball should have package name');
   });
 
   it('should install tarball in temp directory', () => {
@@ -48,7 +50,7 @@ describe.only('Package Operations', () => {
 
     // Find the tarball
     const files = readdirSync(tempDir);
-    const tarball = files.find((f) => f.endsWith('.tgz'));
+    const tarball = find(files, (f: string) => endsWith(f, '.tgz'));
     assert.ok(tarball);
 
     // Create install directory
@@ -85,7 +87,7 @@ describe.only('Package Operations', () => {
 
     // Find tarball and install it
     const files = readdirSync(tempDir);
-    const tarball = files.find((f) => f.endsWith('.tgz'));
+    const tarball = find(files, (f: string) => endsWith(f, '.tgz'));
     assert.ok(tarball, 'Tarball should exist');
     const installDir = createTempDir('install-');
 
@@ -117,7 +119,7 @@ describe.only('Package Operations', () => {
 
     // Find tarball and install it
     const files = readdirSync(tempDir);
-    const tarball = files.find((f) => f.endsWith('.tgz'));
+    const tarball = find(files, (f: string) => endsWith(f, '.tgz'));
     assert.ok(tarball, 'Tarball should exist');
     const installDir = createTempDir('install-');
 
@@ -150,7 +152,7 @@ describe.only('Package Operations', () => {
 
     // Install the tarball
     const files = readdirSync(tempDir);
-    const tarball = files.find((f) => f.endsWith('.tgz'));
+    const tarball = find(files, (f: string) => endsWith(f, '.tgz'));
     assert.ok(tarball, 'Tarball should exist');
     const installDir = createTempDir('install-');
 
