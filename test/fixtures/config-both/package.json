@@ -1,0 +1,8 @@
+{
+  "name": "config-both-test",
+  "version": "1.0.0",
+  "ncp": {
+    "skipCheckBin": true,
+    "skipBuild": false
+  }
+}

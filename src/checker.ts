@@ -1,7 +1,8 @@
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { rimrafSync } from './fs-compat.js';
 import type { Logger, PackageInfo, VerificationResult, VerifyConfig } from './types.js';
 
 const EXCLUDED_PATHS = ['src', 'test', '.env'];
@@ -280,14 +281,14 @@ export class CheckPrepublish {
       // Cleanup
       if (testDir) {
         try {
-          rmSync(testDir, { recursive: true, force: true });
+          rimrafSync(testDir);
         } catch (err) {
           this.logger.log(`Warning: Failed to cleanup test directory: ${err}`);
         }
       }
       if (tarballPath) {
         try {
-          rmSync(tarballPath, { force: true });
+          rimrafSync(tarballPath);
         } catch (err) {
           this.logger.log(`Warning: Failed to cleanup tarball: ${err}`);
         }
@@ -354,8 +355,8 @@ export class CheckPrepublish {
       this.logger.log('✅ Module imports successfully\n');
 
       // Cleanup
-      rmSync(testDir, { recursive: true, force: true });
-      rmSync(tarballPath, { force: true });
+      rimrafSync(testDir);
+      rimrafSync(tarballPath);
     } catch (error) {
       const err = new Error(`Failed to import module: ${error}`);
       this.errors.push(err.message);
@@ -398,8 +399,8 @@ export class CheckPrepublish {
       this.logger.log('✅ CLI executes successfully\n');
 
       // Cleanup
-      rmSync(testDir, { recursive: true, force: true });
-      rmSync(tarballPath, { force: true });
+      rimrafSync(testDir);
+      rimrafSync(tarballPath);
     } catch (error) {
       const err = new Error(`CLI execution failed: ${error}`);
       this.errors.push(err.message);
