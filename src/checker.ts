@@ -2,8 +2,8 @@ import { execSync } from 'child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { rimrafSync } from './fs-compat.js';
-import type { Logger, PackageInfo, VerificationResult, VerifyConfig } from './types.js';
+import { rimrafSync } from './fs-compat.ts';
+import type { Logger, PackageInfo, VerificationResult, VerifyConfig } from './types.ts';
 
 const EXCLUDED_PATHS = ['src', 'test', '.env'];
 
