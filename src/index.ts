@@ -17,6 +17,8 @@
  */
 
 export { CheckPrepublish } from './checker.ts';
+export type { FileConfig } from './config.ts';
+export { loadConfig, mergeConfig } from './config.ts';
 export type {
   Logger,
   PackageInfo,

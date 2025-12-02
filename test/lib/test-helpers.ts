@@ -3,9 +3,10 @@
  */
 
 import { execSync } from 'child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { cpSync, rimrafSync } from '../../src/fs-compat.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,7 +36,7 @@ export function createTempDir(prefix: string): string {
  * Clean up temp directory
  */
 export function cleanupTempDir(dir: string): void {
-  if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
+  if (existsSync(dir)) rimrafSync(dir);
 }
 
 /**
