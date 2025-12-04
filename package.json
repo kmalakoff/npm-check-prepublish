@@ -43,7 +43,7 @@
   "scripts": {
     "build": "npm run typecheck && tsds build",
     "check": "node bin/cli.js",
-    "format": "biome check --write --unsafe",
+    "format": "tsds format",
     "prepublishOnly": "tsds validate",
     "test": "npm run test:unit && npm run test:integration",
     "test:engines": "nvu engines tsds test:node --no-timeouts",
@@ -59,11 +59,11 @@
     "temp-suffix": "*"
   },
   "devDependencies": {
-    "@biomejs/biome": "*",
     "@types/mocha": "*",
     "@types/node": "*",
     "node-version-use": "*",
-    "ts-dev-stack": "*"
+    "ts-dev-stack": "*",
+    "tsds-config": "*"
   },
   "engines": {
     "node": ">=0.12"
