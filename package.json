@@ -30,6 +30,7 @@
   },
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
+  "source": "src/index.ts",
   "types": "./dist/esm/index.d.ts",
   "bin": {
     "ncp": "bin/cli.js",
@@ -52,6 +53,7 @@
     "version": "tsds version"
   },
   "dependencies": {
+    "fs-copy-compat": "*",
     "mkdirp-classic": "*",
     "rimraf2": "*",
     "temp-suffix": "*"
@@ -60,15 +62,10 @@
     "@biomejs/biome": "*",
     "@types/mocha": "*",
     "@types/node": "*",
-    "array-find": "*",
-    "end-with": "*",
     "node-version-use": "*",
     "ts-dev-stack": "*"
   },
   "engines": {
     "node": ">=0.12"
-  },
-  "tsds": {
-    "source": "src/index.ts"
   }
 }
