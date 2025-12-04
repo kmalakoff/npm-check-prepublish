@@ -8,8 +8,8 @@
  */
 import fs from 'fs';
 import { cpSync } from 'fs-copy-compat';
+import { rmSync } from 'fs-remove-compat';
 import mkdirp from 'mkdirp-classic';
-import rimraf from 'rimraf2';
 import tempSuffix from 'temp-suffix';
 
 // Re-export cpSync from fs-copy-compat
@@ -20,10 +20,9 @@ export const mkdirpSync: (dir: string) => void = mkdirp.sync;
 
 /**
  * Recursively remove a file or directory (works on Node 0.8+)
- * Wraps rimraf.sync with disableGlob option
  */
 export function rimrafSync(p: string): void {
-  rimraf.sync(p, { disableGlob: true });
+  rmSync(p, { recursive: true, force: true });
 }
 
 /**
