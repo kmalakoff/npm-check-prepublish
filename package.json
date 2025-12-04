@@ -54,8 +54,8 @@
   },
   "dependencies": {
     "fs-copy-compat": "*",
+    "fs-remove-compat": "*",
     "mkdirp-classic": "*",
-    "rimraf2": "*",
     "temp-suffix": "*"
   },
   "devDependencies": {
