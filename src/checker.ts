@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { stringStartsWith } from './compat.ts';
 import { rimrafSync } from './fs-compat.ts';
 import type { Logger, PackageInfo, VerificationResult, VerifyConfig } from './types.ts';
 
@@ -258,12 +259,12 @@ export class CheckPrepublish {
         const fullPath = join(packageDir, path);
         if (existsSync(fullPath)) {
           // Check if it's a directory or starts with pattern
-          if (path.startsWith('.')) {
+          if (stringStartsWith(path, '.')) {
             // For patterns like .env*, check all files starting with it
             const { readdirSync } = await import('fs');
             const files = readdirSync(packageDir);
             for (const f of files) {
-              if (f.startsWith(path)) {
+              if (stringStartsWith(f, path)) {
                 throw new Error(`File/directory should NOT be in package: ${f}`);
               }
             }
@@ -300,7 +301,7 @@ export class CheckPrepublish {
     const packageName = this.packageJson.name;
 
     // Handle scoped packages
-    if (packageName.startsWith('@')) {
+    if (stringStartsWith(packageName, '@')) {
       const [scope, name] = packageName.split('/');
       return join(testDir, 'node_modules', scope, name);
     }
