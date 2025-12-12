@@ -101,7 +101,6 @@ describe.only('Package Operations', () => {
       const packagePath = join(installDir, 'node_modules', 'test-minimal-module');
 
       assert.ok(existsSync(join(packagePath, 'package.json')), 'package.json should exist');
-      assert.ok(existsSync(join(packagePath, 'dist')), 'dist/ should exist');
       assert.ok(existsSync(join(packagePath, 'dist', 'index.js')), 'dist/index.js should exist');
     } finally {
       cleanupTempDir(installDir);
