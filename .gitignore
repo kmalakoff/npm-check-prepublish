@@ -8,6 +8,8 @@ node_modules/
 
 # Build outputs
 dist/
+!test/fixtures/minimal-module/dist/
+!test/fixtures/minimal-module/dist/index.js
 docs/
 coverage
 coverage.lcov
