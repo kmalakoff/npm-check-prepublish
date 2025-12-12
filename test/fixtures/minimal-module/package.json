@@ -10,8 +10,8 @@
     "build": "tsc"
   },
   "devDependencies": {
-    "@types/mocha": "*",
-    "@types/node": "*",
-    "typescript": "*"
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
   }
 }
