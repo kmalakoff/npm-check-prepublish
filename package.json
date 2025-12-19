@@ -53,17 +53,17 @@
     "version": "tsds version"
   },
   "dependencies": {
-    "fs-copy-compat": "^0.1.5",
-    "fs-remove-compat": "^0.2.3",
-    "mkdirp-classic": "^0.5.3",
+    "fs-copy-compat": "^1.0.0",
+    "fs-remove-compat": "^1.0.0",
+    "mkdirp-classic": "^0.5.2",
     "temp-suffix": "^1.0.10"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "^25.0.1",
-    "node-version-use": "^2.1.5",
-    "ts-dev-stack": "^1.21.3",
-    "tsds-config": "^0.2.1"
+    "@types/mocha": "*",
+    "@types/node": "*",
+    "node-version-use": "*",
+    "ts-dev-stack": "*",
+    "tsds-config": "*"
   },
   "engines": {
     "node": ">=0.12"
