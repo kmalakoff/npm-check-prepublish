@@ -1,19 +1,11 @@
 {
   "name": "test-cli-tool",
   "version": "1.0.0",
-  "type": "module",
   "main": "./dist/index.js",
   "bin": "bin/cli.js",
   "files": [
     "bin",
     "dist"
   ],
-  "scripts": {
-    "build": "tsc"
-  },
-  "devDependencies": {
-    "@types/mocha": "*",
-    "@types/node": "*",
-    "typescript": "^5.9.3"
-  }
+  "license": "MIT"
 }

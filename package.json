@@ -41,7 +41,7 @@
     "bin"
   ],
   "scripts": {
-    "build": "npm run typecheck && tsds build",
+    "build": "tsds build",
     "check": "node bin/cli.js",
     "format": "tsds format",
     "prepublishOnly": "tsds validate",

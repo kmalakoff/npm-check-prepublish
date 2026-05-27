@@ -1,26 +1,14 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import { parseArgs } from 'util';
+var args = process.argv.slice(2);
 
-const { values } = parseArgs({
-  options: {
-    help: { type: 'boolean', default: false },
-    version: { type: 'boolean', default: false },
-  },
-});
-
-if (values.version) {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
-  const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8'));
-  console.log(packageJson.version);
+if (args.indexOf('--version') !== -1) {
+  var pkg = require('../package.json');
+  console.log(pkg.version);
   process.exit(0);
 }
 
-if (values.help) {
+if (args.indexOf('--help') !== -1) {
   console.log('Usage: test-cli-tool [options]');
   console.log('');
   console.log('Options:');

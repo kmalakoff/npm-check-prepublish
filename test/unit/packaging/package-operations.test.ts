@@ -23,10 +23,6 @@ describe.only('Package Operations', () => {
   it('should create tarball with npm pack', () => {
     copyFixture('minimal-module', tempDir);
 
-    // Install dependencies and build
-    runCommand('npm install', tempDir);
-    runCommand('npm run build', tempDir);
-
     // Run npm pack
     const packResult = runCommand('npm pack', tempDir);
     assert.equal(packResult.exitCode, 0, 'npm pack should succeed');
@@ -41,9 +37,7 @@ describe.only('Package Operations', () => {
   it('should install tarball in temp directory', () => {
     copyFixture('minimal-module', tempDir);
 
-    // Install, build, and pack
-    runCommand('npm install', tempDir);
-    runCommand('npm run build', tempDir);
+    // Pack the fixture
     const packResult = runCommand('npm pack', tempDir);
     assert.equal(packResult.exitCode, 0);
 
@@ -79,9 +73,7 @@ describe.only('Package Operations', () => {
   it('should check required files are present in installed package', () => {
     copyFixture('minimal-module', tempDir);
 
-    // Install, build, and pack
-    runCommand('npm install', tempDir);
-    runCommand('npm run build', tempDir);
+    // Pack the fixture
     runCommand('npm pack', tempDir);
 
     // Find tarball and install it
@@ -110,9 +102,7 @@ describe.only('Package Operations', () => {
   it('should check excluded files are NOT in package', () => {
     copyFixture('minimal-module', tempDir);
 
-    // Install, build, and pack
-    runCommand('npm install', tempDir);
-    runCommand('npm run build', tempDir);
+    // Pack the fixture
     runCommand('npm pack', tempDir);
 
     // Find tarball and install it
@@ -143,8 +133,7 @@ describe.only('Package Operations', () => {
   it('should handle package with bin field', () => {
     copyFixture('cli-tool', tempDir);
 
-    // Install and pack (no build needed for this fixture)
-    runCommand('npm install', tempDir);
+    // Pack the fixture
     const packResult = runCommand('npm pack', tempDir);
     assert.equal(packResult.exitCode, 0);
 
