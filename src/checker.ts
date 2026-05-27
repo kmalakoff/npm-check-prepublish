@@ -392,7 +392,7 @@ export class CheckPrepublish {
 
       // Get bin name
       const bin = this.packageJson.bin;
-      const binName = typeof bin === 'string' ? this.packageJson.name.split('/').pop() : Object.keys(bin)[0];
+      const binName = typeof bin === 'string' ? (this.packageJson.name.split('/').pop() ?? '') : (Object.keys(bin ?? {})[0] ?? '');
       const binPath = join(testDir, 'node_modules', '.bin', binName);
 
       this.logger.log(`Running CLI: ${binName} --version`);
