@@ -29,7 +29,6 @@
     "./package.json": "./package.json"
   },
   "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
   "source": "src/index.ts",
   "types": "./dist/esm/index.d.ts",
   "bin": {
@@ -37,8 +36,7 @@
     "npm-check-prepublish": "bin/cli.js"
   },
   "files": [
-    "dist",
-    "bin"
+    "dist"
   ],
   "scripts": {
     "build": "tsds build",
