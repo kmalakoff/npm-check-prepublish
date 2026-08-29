@@ -4,7 +4,10 @@
 
 import assert from 'assert';
 import { readdirSync } from 'fs';
+import { supportsESM } from 'module-compat';
 import { join } from 'path';
+import loadModule from '../../../src/lib/loadModule.ts';
+import { arrayFind, arrayIncludes, stringEndsWith } from '../../lib/compat.ts';
 import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../../lib/test-helpers.ts';
 
 describe('Module Import', () => {
@@ -18,7 +21,7 @@ describe('Module Import', () => {
     cleanupTempDir(tempDir);
   });
 
-  it('should import module from installed package', async () => {
+  it('should require module from installed package (require condition)', async () => {
     copyFixture('minimal-module', tempDir);
 
     // Install, build, and pack
@@ -28,7 +31,7 @@ describe('Module Import', () => {
 
     // Find tarball and install it
     const files = readdirSync(tempDir);
-    const tarball = files.find((f) => f.endsWith('.tgz'));
+    const tarball = arrayFind(files, (f) => stringEndsWith(f, '.tgz'));
     assert.ok(tarball, 'Tarball should exist');
     const installDir = createTempDir('install-');
 
@@ -40,9 +43,45 @@ describe('Module Import', () => {
       const installResult = runCommand(`npm install --production "${tarballPath}"`, installDir);
       assert.equal(installResult.exitCode, 0, `npm install should succeed: ${installResult.stdout}`);
 
-      // Import the module using the full path to the main file
+      // Load the module using the full path to the require-condition entry
       const packagePath = join(installDir, 'node_modules', 'test-minimal-module', 'dist', 'index.js');
-      const module = await import(packagePath);
+      const module = (await loadModule(packagePath)) as { hello: (name: string) => string };
+
+      // Verify exported function exists and works
+      assert.ok(module.hello, 'Module should export hello function');
+      assert.equal(typeof module.hello, 'function', 'hello should be a function');
+      assert.equal(module.hello('World'), 'Hello, World!');
+    } finally {
+      cleanupTempDir(installDir);
+    }
+  });
+
+  it('should import module from installed package (import condition)', async function () {
+    if (!supportsESM()) return this.skip();
+    copyFixture('minimal-module', tempDir);
+
+    // Install, build, and pack
+    runCommand('npm install', tempDir);
+    runCommand('npm run build', tempDir);
+    runCommand('npm pack', tempDir);
+
+    // Find tarball and install it
+    const files = readdirSync(tempDir);
+    const tarball = arrayFind(files, (f) => stringEndsWith(f, '.tgz'));
+    assert.ok(tarball, 'Tarball should exist');
+    const installDir = createTempDir('install-');
+
+    try {
+      // Create package.json in install directory so npm doesn't walk up to project root
+      runCommand('npm init -y', installDir);
+
+      const tarballPath = join(tempDir, tarball);
+      const installResult = runCommand(`npm install --production "${tarballPath}"`, installDir);
+      assert.equal(installResult.exitCode, 0, `npm install should succeed: ${installResult.stdout}`);
+
+      // Load the module using the full path to the import-condition entry
+      const packagePath = join(installDir, 'node_modules', 'test-minimal-module', 'dist', 'index.mjs');
+      const module = (await loadModule(packagePath)) as { hello: (name: string) => string };
 
       // Verify exported function exists and works
       assert.ok(module.hello, 'Module should export hello function');
@@ -63,7 +102,7 @@ describe('Module Import', () => {
 
     // Install and import
     const files = readdirSync(tempDir);
-    const tarball = files.find((f) => f.endsWith('.tgz'));
+    const tarball = arrayFind(files, (f) => stringEndsWith(f, '.tgz'));
     assert.ok(tarball, 'Tarball should exist');
     const installDir = createTempDir('install-');
 
@@ -76,7 +115,7 @@ describe('Module Import', () => {
       assert.equal(installResult.exitCode, 0, `npm install should succeed: ${installResult.stdout}`);
 
       const packagePath = join(installDir, 'node_modules', 'test-minimal-module', 'dist', 'index.js');
-      const module = await import(packagePath);
+      const module = (await loadModule(packagePath)) as { hello: (name: string) => string };
 
       // Verify named export works
       const { hello } = module;
@@ -95,7 +134,7 @@ describe('Module Import', () => {
     runCommand('npm pack', tempDir);
 
     const files = readdirSync(tempDir);
-    const tarball = files.find((f) => f.endsWith('.tgz'));
+    const tarball = arrayFind(files, (f) => stringEndsWith(f, '.tgz'));
     assert.ok(tarball, 'Tarball should exist');
     const installDir = createTempDir('install-');
 
@@ -108,11 +147,11 @@ describe('Module Import', () => {
       assert.equal(installResult.exitCode, 0, `npm install should succeed: ${installResult.stdout}`);
 
       const packagePath = join(installDir, 'node_modules', 'test-minimal-module', 'dist', 'index.js');
-      const module = await import(packagePath);
+      const module = (await loadModule(packagePath)) as Record<string, unknown>;
 
       // Check that module has expected shape
       const exportedNames = Object.keys(module);
-      assert.ok(exportedNames.includes('hello'), 'Module should export "hello"');
+      assert.ok(arrayIncludes(exportedNames, 'hello'), 'Module should export "hello"');
       assert.equal(exportedNames.length, 1, 'Module should have exactly one export');
     } finally {
       cleanupTempDir(installDir);
