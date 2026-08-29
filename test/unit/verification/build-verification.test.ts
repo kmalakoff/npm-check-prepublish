@@ -5,6 +5,7 @@
 import assert from 'assert';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { rimrafSync } from '../../../src/fs-compat.ts';
 import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../../lib/test-helpers.ts';
 
 describe('Build Verification', () => {
@@ -20,6 +21,15 @@ describe('Build Verification', () => {
 
   it('should run build successfully when build script exists', () => {
     copyFixture('minimal-module', tempDir);
+    // minimal-module ships prebuilt dist with no build script; remove it so a real build is required
+    rimrafSync(join(tempDir, 'dist'));
+
+    // Give this copy a build script; other tests rely on the checked-in fixture having none
+    writeFileSync(join(tempDir, 'build.js'), 'require("fs").mkdirSync("dist");\nrequire("fs").writeFileSync("dist/index.js", "");\n');
+    const packageJsonPath = join(tempDir, 'package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+    packageJson.scripts = { build: 'node build.js' };
+    writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
     // Install dependencies first
     const installResult = runCommand('npm install', tempDir);
@@ -39,16 +49,11 @@ describe('Build Verification', () => {
   });
 
   it('should handle missing build script gracefully', () => {
+    // minimal-module has no scripts.build; other tests rely on that
     copyFixture('minimal-module', tempDir);
 
     // Install dependencies
     runCommand('npm install', tempDir);
-
-    // Remove build script from package.json
-    const packageJsonPath = join(tempDir, 'package.json');
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
-    delete packageJson.scripts.build;
-    writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
     // Try to run build (should fail gracefully)
     const buildResult = runCommand('npm run build', tempDir);

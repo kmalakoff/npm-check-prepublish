@@ -51,9 +51,12 @@
     "version": "tsds version"
   },
   "dependencies": {
+    "exit-compat": "^1.0.5",
     "fs-copy-compat": "^1.0.0",
     "fs-remove-compat": "^1.0.0",
+    "getopts-compat": "^2.2.6",
     "mkdirp-classic": "^0.5.2",
+    "module-compat": "^0.1.2",
     "temp-suffix": "^1.0.10"
   },
   "devDependencies": {
@@ -65,5 +68,11 @@
   },
   "engines": {
     "node": ">=0.12"
+  },
+  "allowScripts": {
+    "node-filename-to-dist-paths": true,
+    "node-semvers": true,
+    "node-version-use": true,
+    "thread-sleep-compat": true
   }
 }

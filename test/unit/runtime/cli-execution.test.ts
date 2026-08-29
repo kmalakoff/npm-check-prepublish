@@ -4,6 +4,7 @@
 
 import assert from 'assert';
 import { join } from 'path';
+import { stringIncludes } from '../../lib/compat.ts';
 import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../../lib/test-helpers.ts';
 
 describe('CLI Execution', () => {
@@ -26,7 +27,7 @@ describe('CLI Execution', () => {
     const result = runCommand(`node ${cliPath} --version`, tempDir);
 
     assert.equal(result.exitCode, 0, 'CLI should exit with code 0');
-    assert.ok(result.stdout.includes('1.0.0'), 'Should output version');
+    assert.ok(stringIncludes(result.stdout, '1.0.0'), 'Should output version');
   });
 
   it('should run CLI with --help', () => {
@@ -38,8 +39,8 @@ describe('CLI Execution', () => {
     const result = runCommand(`node ${cliPath} --help`, tempDir);
 
     assert.equal(result.exitCode, 0, 'CLI should exit with code 0');
-    assert.ok(result.stdout.includes('Usage'), 'Should output usage information');
-    assert.ok(result.stdout.includes('Options'), 'Should output options');
+    assert.ok(stringIncludes(result.stdout, 'Usage'), 'Should output usage information');
+    assert.ok(stringIncludes(result.stdout, 'Options'), 'Should output options');
   });
 
   it('should handle CLI execution from installed package', () => {
@@ -65,7 +66,7 @@ describe('CLI Execution', () => {
       const result = runCommand(`node ${cliPath} --version`, installDir);
 
       assert.equal(result.exitCode, 0, 'Installed CLI should work');
-      assert.ok(result.stdout.includes('1.0.0'), 'Should output version');
+      assert.ok(stringIncludes(result.stdout, '1.0.0'), 'Should output version');
     } finally {
       cleanupTempDir(installDir);
     }

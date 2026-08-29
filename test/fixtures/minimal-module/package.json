@@ -2,6 +2,12 @@
   "name": "test-minimal-module",
   "version": "1.0.0",
   "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
   "files": [
     "dist"
   ],
