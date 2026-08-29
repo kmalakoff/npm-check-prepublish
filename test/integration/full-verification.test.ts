@@ -5,6 +5,7 @@
 
 import assert from 'assert';
 import { CheckPrepublish } from '../../src/checker.ts';
+import { stringIncludes } from '../lib/compat.ts';
 import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../lib/test-helpers.ts';
 
 describe('Full Package Verification', () => {
@@ -87,7 +88,7 @@ describe('Full Package Verification', () => {
     assert.equal(result.success, false, 'Should fail when files are missing');
     assert.ok(result.errors.length > 0, 'Should have error messages');
     assert.ok(
-      result.errors.some((e) => e.includes('dist/index.js')),
+      result.errors.some((e) => stringIncludes(e, 'dist/index.js')),
       'Should mention missing file'
     );
   });
@@ -105,7 +106,7 @@ describe('Full Package Verification', () => {
     // Should fail because README.md and LICENSE don't exist
     assert.equal(result.success, false, 'Should fail when additional files are missing');
     assert.ok(
-      result.errors.some((e) => e.includes('README.md') || e.includes('LICENSE')),
+      result.errors.some((e) => stringIncludes(e, 'README.md') || stringIncludes(e, 'LICENSE')),
       'Should mention missing additional files'
     );
   });
@@ -154,7 +155,7 @@ describe('Full Package Verification', () => {
     // Should have logged something
     assert.ok(logs.length > 0, 'Should have logged messages');
     assert.ok(
-      logs.some((log) => log.includes('Verifying')),
+      logs.some((log) => stringIncludes(log, 'Verifying')),
       'Should log verification messages'
     );
   });

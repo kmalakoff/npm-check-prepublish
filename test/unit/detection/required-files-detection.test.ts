@@ -4,6 +4,7 @@
 
 import assert from 'assert';
 import { CheckPrepublish } from '../../../src/checker.ts';
+import { arrayIncludes } from '../../lib/compat.ts';
 
 describe('Required Files Detection', () => {
   it('should detect files from main, module, types, bin', () => {
@@ -22,11 +23,11 @@ describe('Required Files Detection', () => {
     // @ts-expect-error - accessing private method for testing
     const files = checker.getRequiredFiles();
 
-    assert.ok(files.includes('package.json'));
-    assert.ok(files.includes('./dist/cjs/index.js'));
-    assert.ok(files.includes('./dist/esm/index.js'));
-    assert.ok(files.includes('./dist/esm/index.d.ts'));
-    assert.ok(files.includes('bin/cli.js'));
+    assert.ok(arrayIncludes(files, 'package.json'));
+    assert.ok(arrayIncludes(files, './dist/cjs/index.js'));
+    assert.ok(arrayIncludes(files, './dist/esm/index.js'));
+    assert.ok(arrayIncludes(files, './dist/esm/index.d.ts'));
+    assert.ok(arrayIncludes(files, 'bin/cli.js'));
   });
 
   it('should handle bin as object', () => {
@@ -45,8 +46,8 @@ describe('Required Files Detection', () => {
     // @ts-expect-error - accessing private method for testing
     const files = checker.getRequiredFiles();
 
-    assert.ok(files.includes('bin/cli.js'));
-    assert.ok(files.includes('bin/alt.js'));
+    assert.ok(arrayIncludes(files, 'bin/cli.js'));
+    assert.ok(arrayIncludes(files, 'bin/alt.js'));
   });
 
   it('should append additional required files from config', () => {
@@ -65,9 +66,9 @@ describe('Required Files Detection', () => {
     // @ts-expect-error - accessing private method for testing
     const files = checker.getRequiredFiles();
 
-    assert.ok(files.includes('README.md'));
-    assert.ok(files.includes('LICENSE'));
-    assert.ok(files.includes('./dist/index.js'));
+    assert.ok(arrayIncludes(files, 'README.md'));
+    assert.ok(arrayIncludes(files, 'LICENSE'));
+    assert.ok(arrayIncludes(files, './dist/index.js'));
   });
 
   it('should handle minimal package.json', () => {
@@ -83,7 +84,7 @@ describe('Required Files Detection', () => {
     const files = checker.getRequiredFiles();
 
     // Should at least have package.json
-    assert.ok(files.includes('package.json'));
+    assert.ok(arrayIncludes(files, 'package.json'));
     assert.equal(files.length, 1);
   });
 });

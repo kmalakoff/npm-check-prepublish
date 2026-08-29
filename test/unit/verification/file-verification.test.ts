@@ -3,9 +3,11 @@
  */
 
 import assert from 'assert';
-import { mkdirSync, writeFileSync } from 'fs';
+import { writeFileSync } from 'fs';
 import { join } from 'path';
 import { CheckPrepublish } from '../../../src/checker.ts';
+import { mkdirpSync } from '../../../src/fs-compat.ts';
+import { arrayIncludes } from '../../lib/compat.ts';
 import { cleanupTempDir, createTempDir } from '../../lib/test-helpers.ts';
 
 describe('File Verification', () => {
@@ -29,7 +31,7 @@ describe('File Verification', () => {
     writeFileSync(join(tempDir, 'package.json'), JSON.stringify(packageJson));
 
     // Create the required file
-    mkdirSync(join(tempDir, 'dist'), { recursive: true });
+    mkdirpSync(join(tempDir, 'dist'));
     writeFileSync(join(tempDir, 'dist', 'index.js'), '// test');
 
     // Verify with CheckPrepublish
@@ -76,8 +78,8 @@ describe('File Verification', () => {
     writeFileSync(join(tempDir, 'package.json'), JSON.stringify(packageJson));
 
     // Create the files
-    mkdirSync(join(tempDir, 'dist', 'cjs'), { recursive: true });
-    mkdirSync(join(tempDir, 'dist', 'esm'), { recursive: true });
+    mkdirpSync(join(tempDir, 'dist', 'cjs'));
+    mkdirpSync(join(tempDir, 'dist', 'esm'));
     writeFileSync(join(tempDir, 'dist', 'cjs', 'index.js'), '// cjs');
     writeFileSync(join(tempDir, 'dist', 'esm', 'index.js'), '// esm');
 
@@ -103,6 +105,6 @@ describe('File Verification', () => {
     const files = checker.getRequiredFiles();
 
     // package.json should always be in required files
-    assert.ok(files.includes('package.json'), 'package.json should always be required');
+    assert.ok(arrayIncludes(files, 'package.json'), 'package.json should always be required');
   });
 });

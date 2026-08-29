@@ -6,6 +6,7 @@ import assert from 'assert';
 import path from 'path';
 import url from 'url';
 import { loadConfig, mergeConfig } from '../../../src/config.ts';
+import { assertDeepStrictEqual } from '../../lib/compat.ts';
 
 const __dirname = path.dirname(typeof __filename !== 'undefined' ? __filename : url.fileURLToPath(import.meta.url));
 const FIXTURES = path.join(__dirname, '..', '..', 'fixtures');
@@ -17,14 +18,14 @@ describe('Config Loader', () => {
 
       assert.strictEqual(config.skipCheckImport, true);
       assert.strictEqual(config.skipBuild, false);
-      assert.deepStrictEqual(config.requiredFiles, ['README.md']);
+      assertDeepStrictEqual(config.requiredFiles, ['README.md']);
     });
 
     it('should load config from package.json "ncp" field', () => {
       const config = loadConfig(path.join(FIXTURES, 'config-package-json'));
 
       assert.strictEqual(config.skipCheckBin, true);
-      assert.deepStrictEqual(config.requiredFiles, ['LICENSE']);
+      assertDeepStrictEqual(config.requiredFiles, ['LICENSE']);
     });
 
     it('should prefer .ncprc.json over package.json "ncp" field', () => {
@@ -42,13 +43,13 @@ describe('Config Loader', () => {
     it('should return empty object when no config found', () => {
       const config = loadConfig(path.join(FIXTURES, 'config-none'));
 
-      assert.deepStrictEqual(config, {});
+      assertDeepStrictEqual(config, {});
     });
 
     it('should return empty object for non-existent directory', () => {
       const config = loadConfig(path.join(FIXTURES, 'non-existent'));
 
-      assert.deepStrictEqual(config, {});
+      assertDeepStrictEqual(config, {});
     });
   });
 
@@ -69,7 +70,7 @@ describe('Config Loader', () => {
       assert.strictEqual(merged.packageDir, '/some/path');
       assert.strictEqual(merged.skipCheckImport, true); // from file
       assert.strictEqual(merged.skipBuild, true); // CLI overrides
-      assert.deepStrictEqual(merged.requiredFiles, ['README.md']);
+      assertDeepStrictEqual(merged.requiredFiles, ['README.md']);
     });
 
     it('should use file config values when CLI values are undefined', () => {
@@ -98,7 +99,7 @@ describe('Config Loader', () => {
 
       const merged = mergeConfig(fileConfig, cliConfig);
 
-      assert.deepStrictEqual(merged.requiredFiles, ['README.md', 'LICENSE', 'CHANGELOG.md']);
+      assertDeepStrictEqual(merged.requiredFiles, ['README.md', 'LICENSE', 'CHANGELOG.md']);
     });
 
     it('should handle empty configs', () => {
@@ -106,7 +107,7 @@ describe('Config Loader', () => {
 
       assert.strictEqual(merged.skipBuild, undefined);
       assert.strictEqual(merged.skipCheckImport, undefined);
-      assert.deepStrictEqual(merged.requiredFiles, []);
+      assertDeepStrictEqual(merged.requiredFiles, []);
     });
   });
 });

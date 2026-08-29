@@ -1,17 +1,28 @@
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
+import { supportsESM } from 'module-compat';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { stringStartsWith } from './compat.ts';
-import { rimrafSync } from './fs-compat.ts';
-import type { Logger, PackageInfo, VerificationResult, VerifyConfig } from './types.ts';
+import { objectValues, stringStartsWith } from './compat.ts';
+import { mkdirpSync, mkdtempSync, rimrafSync } from './fs-compat.ts';
+import loadModule from './lib/loadModule.ts';
+import type { Logger, PackageExportsMap, PackageInfo, VerificationResult, VerifyConfig } from './types.ts';
 
 const EXCLUDED_PATHS = ['src', 'test', '.env'];
+
+/**
+ * Resolve one exports condition, following "default" as the last fallback.
+ */
+function resolveExportCondition(exp: PackageExportsMap | undefined, condition: 'import' | 'require'): string | undefined {
+  if (exp === undefined) return undefined;
+  if (typeof exp === 'string') return exp;
+  return resolveExportCondition(exp[condition] ?? exp.default, condition);
+}
 
 function getTmpDir(): string {
   const tmpDir = join(tmpdir(), 'npm-check-prepublish');
   if (!existsSync(tmpDir)) {
-    mkdirSync(tmpDir, { recursive: true });
+    mkdirpSync(tmpDir);
   }
   return tmpDir;
 }
@@ -26,6 +37,7 @@ export class CheckPrepublish {
     module?: string;
     types?: string;
     bin?: string | Record<string, string>;
+    exports?: PackageExportsMap;
     scripts?: { build?: string };
   };
   private packageInfo: PackageInfo;
@@ -88,7 +100,7 @@ export class CheckPrepublish {
       if (typeof this.packageJson.bin === 'string') {
         files.push(this.packageJson.bin);
       } else {
-        files.push(...(Object.values(this.packageJson.bin) as string[]));
+        files.push(...objectValues(this.packageJson.bin as Record<string, string>));
       }
     }
 
@@ -261,7 +273,6 @@ export class CheckPrepublish {
           // Check if it's a directory or starts with pattern
           if (stringStartsWith(path, '.')) {
             // For patterns like .env*, check all files starting with it
-            const { readdirSync } = await import('fs');
             const files = readdirSync(packageDir);
             for (const f of files) {
               if (stringStartsWith(f, path)) {
@@ -323,6 +334,15 @@ export class CheckPrepublish {
     }
   }
 
+  /**
+   * Resolve the entry file for an exports condition, falling back to "main".
+   */
+  private resolveEntry(condition: 'import' | 'require'): string {
+    const exp = this.packageJson.exports;
+    const dot = exp && typeof exp === 'object' ? (exp['.'] ?? exp) : exp;
+    return resolveExportCondition(dot, condition) || this.packageJson.main || './index.js';
+  }
+
   private async verifyModuleImport(): Promise<void> {
     this.logger.log(`Type: ${this.getTypeLabel()}`);
 
@@ -349,11 +369,24 @@ export class CheckPrepublish {
       });
 
       const packageDir = this.getInstalledPackagePath(testDir);
-      const mainFile = this.packageJson.main || './index.js';
-      const modulePath = join(packageDir, mainFile);
-      this.logger.log(`Importing module: ${this.packageInfo.name}`);
-      await import(modulePath);
-      this.logger.log('✅ Module imports successfully\n');
+      const requireEntry = this.resolveEntry('require');
+      const importEntry = this.resolveEntry('import');
+
+      // Verify the require condition loads (CJS consumers)
+      this.logger.log(`Requiring module: ${this.packageInfo.name}`);
+      await loadModule(join(packageDir, requireEntry));
+      this.logger.log('✅ Module requires successfully\n');
+
+      // Verify the import condition loads too, when it names a different file (ESM consumers)
+      if (importEntry !== requireEntry) {
+        if (supportsESM()) {
+          this.logger.log(`Importing module: ${this.packageInfo.name}`);
+          await loadModule(join(packageDir, importEntry));
+          this.logger.log('✅ Module imports successfully\n');
+        } else {
+          this.logger.log(`Skipped import condition: ESM requires Node 12+, current is ${process.version}\n`);
+        }
+      }
 
       // Cleanup
       rimrafSync(testDir);

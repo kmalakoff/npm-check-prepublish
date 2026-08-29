@@ -4,10 +4,11 @@
  * Supports both ESM and CJS via the bin/cli.js wrapper
  */
 
+import exit from 'exit-compat';
 import { readFileSync } from 'fs';
+import getopts from 'getopts-compat';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { parseArgs } from 'util';
 import { CheckPrepublish } from './checker.ts';
 import { loadConfig, mergeConfig } from './config.ts';
 
@@ -58,48 +59,22 @@ Examples:
 }
 
 export default async function cli(argv: string[]): Promise<void> {
-  const { values } = parseArgs({
-    args: argv,
-    options: {
-      help: {
-        type: 'boolean',
-        default: false,
-      },
-      version: {
-        type: 'boolean',
-        default: false,
-      },
-      'no-build': {
-        type: 'boolean',
-        default: false,
-      },
-      'no-check-required-files': {
-        type: 'boolean',
-        default: false,
-      },
-      'no-pack': {
-        type: 'boolean',
-        default: false,
-      },
-      'no-check-import': {
-        type: 'boolean',
-        default: false,
-      },
-      'no-check-bin': {
-        type: 'boolean',
-        default: false,
-      },
-    },
+  // getopts negates "--no-x" flags onto their positive name, so declare the positive names here.
+  const options = getopts(argv, {
+    boolean: ['help', 'version', 'build', 'check-required-files', 'pack', 'check-import', 'check-bin'],
+    default: { build: true, 'check-required-files': true, pack: true, 'check-import': true, 'check-bin': true },
   });
 
-  if (values.version) {
+  if (options.version) {
     console.log(getVersion());
-    process.exit(0);
+    exit(0);
+    return;
   }
 
-  if (values.help) {
+  if (options.help) {
     showHelp();
-    process.exit(0);
+    exit(0);
+    return;
   }
 
   const packageDir = process.cwd();
@@ -110,11 +85,11 @@ export default async function cli(argv: string[]): Promise<void> {
   // CLI args (only set if explicitly passed)
   const cliConfig = {
     packageDir,
-    skipBuild: values['no-build'] || undefined,
-    skipCheckRequiredFiles: values['no-check-required-files'] || undefined,
-    skipPackage: values['no-pack'] || undefined,
-    skipCheckImport: values['no-check-import'] || undefined,
-    skipCheckBin: values['no-check-bin'] || undefined,
+    skipBuild: options.build ? undefined : true,
+    skipCheckRequiredFiles: options['check-required-files'] ? undefined : true,
+    skipPackage: options.pack ? undefined : true,
+    skipCheckImport: options['check-import'] ? undefined : true,
+    skipCheckBin: options['check-bin'] ? undefined : true,
   };
 
   // Merge: CLI overrides file config
@@ -122,5 +97,5 @@ export default async function cli(argv: string[]): Promise<void> {
 
   const checker = new CheckPrepublish(config);
   const result = await checker.check();
-  process.exit(result.success ? 0 : 1);
+  exit(result.success ? 0 : 1);
 }

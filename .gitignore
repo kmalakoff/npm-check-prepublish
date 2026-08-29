@@ -10,6 +10,9 @@ node_modules/
 dist/
 !test/fixtures/minimal-module/dist/
 !test/fixtures/minimal-module/dist/index.js
+!test/fixtures/minimal-module/dist/index.mjs
+!test/fixtures/cli-tool/dist/
+!test/fixtures/cli-tool/dist/index.js
 docs/
 coverage
 coverage.lcov

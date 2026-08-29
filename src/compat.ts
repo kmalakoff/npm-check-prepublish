@@ -14,3 +14,8 @@ export function stringStartsWith(str: string, search: string, position?: number)
   position = position || 0;
   return str.indexOf(search, position) === position;
 }
+
+// Object.values is Node 7+; this package's floor is >=0.12. Object.keys is ES5.
+export function objectValues<T>(obj: Record<string, T>): T[] {
+  return Object.keys(obj).map((key) => obj[key]);
+}

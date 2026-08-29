@@ -9,7 +9,7 @@ import { join } from 'path';
 import { arrayFind, stringEndsWith } from '../../lib/compat.ts';
 import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../../lib/test-helpers.ts';
 
-describe.only('Package Operations', () => {
+describe('Package Operations', () => {
   let tempDir: string;
 
   beforeEach(() => {
@@ -113,7 +113,7 @@ describe.only('Package Operations', () => {
 
     try {
       // Create package.json in install directory so npm doesn't walk up to project root
-      runCommand('npm init -y', installDir); // ← ADD THIS LINE
+      runCommand('npm init -y', installDir);
 
       const tarballPath = join(tempDir, tarball);
       runCommand(`npm install --production ${tarballPath}`, installDir);

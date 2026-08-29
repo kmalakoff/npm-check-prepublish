@@ -1,4 +1,9 @@
 /**
+ * A package.json "exports" field value, recursively conditional.
+ */
+export type PackageExportsMap = string | { [condition: string]: PackageExportsMap };
+
+/**
  * Package type detection
  */
 export type PackageType = 'module' | 'cli';
