@@ -13,6 +13,7 @@ import { CheckPrepublish } from './checker.ts';
 import { loadConfig, mergeConfig } from './config.ts';
 
 const __dirname = dirname(typeof __filename !== 'undefined' ? __filename : fileURLToPath(import.meta.url));
+const ERROR_CODE = 21;
 
 function getVersion(): string {
   const packagePath = join(__dirname, '..', '..', 'package.json');
@@ -61,6 +62,7 @@ Examples:
 export default async function cli(argv: string[]): Promise<void> {
   // getopts negates "--no-x" flags onto their positive name, so declare the positive names here.
   const options = getopts(argv, {
+    alias: { help: 'h', version: 'v' },
     boolean: ['help', 'version', 'build', 'check-required-files', 'pack', 'check-import', 'check-bin'],
     default: { build: true, 'check-required-files': true, pack: true, 'check-import': true, 'check-bin': true },
   });
@@ -97,5 +99,5 @@ export default async function cli(argv: string[]): Promise<void> {
 
   const checker = new CheckPrepublish(config);
   const result = await checker.check();
-  exit(result.success ? 0 : 1);
+  exit(result.success ? 0 : ERROR_CODE);
 }
