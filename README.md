@@ -185,6 +185,7 @@ npx npm-check-prepublish --test-file ./scripts/check-tests.ts
   "bin": "bin/server.js",
   "scripts": {
     "build": "tsds build",
+    "prepublishOnly": "tsds validate",
     "check": "npm-check-prepublish --test-file ./scripts/check-tests.ts"
   }
 }
