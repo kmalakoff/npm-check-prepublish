@@ -4,8 +4,8 @@
 
 import assert from 'assert';
 import { join } from 'path';
-import { stringIncludes } from '../../lib/compat.ts';
-import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../../lib/test-helpers.ts';
+import { stringIncludes } from '../lib/compat.ts';
+import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../lib/test-helpers.ts';
 
 describe('CLI Execution', () => {
   let tempDir: string;

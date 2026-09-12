@@ -5,10 +5,10 @@
 import assert from 'assert';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
-import { CheckPrepublish } from '../../../src/checker.ts';
-import { mkdirpSync } from '../../../src/fs-compat.ts';
-import { arrayIncludes } from '../../lib/compat.ts';
-import { cleanupTempDir, createTempDir } from '../../lib/test-helpers.ts';
+import { CheckPrepublish } from '../../src/checker.ts';
+import { mkdirpSync } from '../../src/fs-compat.ts';
+import { arrayIncludes } from '../lib/compat.ts';
+import { cleanupTempDir, createTempDir } from '../lib/test-helpers.ts';
 
 describe('File Verification', () => {
   let tempDir: string;
