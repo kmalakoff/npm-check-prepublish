@@ -6,9 +6,9 @@ import assert from 'assert';
 import { readdirSync } from 'fs';
 import { supportsESM } from 'module-compat';
 import { join } from 'path';
-import loadModule from '../../../src/lib/loadModule.ts';
-import { arrayFind, arrayIncludes, stringEndsWith } from '../../lib/compat.ts';
-import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../../lib/test-helpers.ts';
+import loadModule from '../../src/lib/loadModule.ts';
+import { arrayFind, arrayIncludes, stringEndsWith } from '../lib/compat.ts';
+import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../lib/test-helpers.ts';
 
 describe('Module Import', () => {
   let tempDir: string;

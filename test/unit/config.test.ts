@@ -5,11 +5,11 @@
 import assert from 'assert';
 import path from 'path';
 import url from 'url';
-import { loadConfig, mergeConfig } from '../../../src/config.ts';
-import { assertDeepStrictEqual } from '../../lib/compat.ts';
+import { loadConfig, mergeConfig } from '../../src/config.ts';
+import { assertDeepStrictEqual } from '../lib/compat.ts';
 
 const __dirname = path.dirname(typeof __filename !== 'undefined' ? __filename : url.fileURLToPath(import.meta.url));
-const FIXTURES = path.join(__dirname, '..', '..', 'fixtures');
+const FIXTURES = path.join(__dirname, '..', 'fixtures');
 
 describe('Config Loader', () => {
   describe('loadConfig', () => {
