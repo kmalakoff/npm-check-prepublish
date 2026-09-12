@@ -6,8 +6,8 @@
 import assert from 'assert';
 import { existsSync, readdirSync } from 'fs';
 import { join } from 'path';
-import { arrayFind, stringEndsWith } from '../../lib/compat.ts';
-import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../../lib/test-helpers.ts';
+import { arrayFind, stringEndsWith } from '../lib/compat.ts';
+import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../lib/test-helpers.ts';
 
 describe('Package Operations', () => {
   let tempDir: string;

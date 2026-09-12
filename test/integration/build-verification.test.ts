@@ -5,8 +5,8 @@
 import assert from 'assert';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { rimrafSync } from '../../../src/fs-compat.ts';
-import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../../lib/test-helpers.ts';
+import { rimrafSync } from '../../src/fs-compat.ts';
+import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../lib/test-helpers.ts';
 
 describe('Build Verification', () => {
   let tempDir: string;
