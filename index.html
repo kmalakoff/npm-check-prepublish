@@ -21,11 +21,11 @@
 <p>Run it directly with <code>npx npm-check-prepublish</code> or the shorter installed binary, <code>ncp</code>.</p>
 <p>The check runs <code>npm run build</code> when that script exists. It then:</p>
 <ul>
-<li>verifies files referenced by <code>main</code>, <code>module</code>, <code>types</code>, <code>typings</code>, <code>bin</code>, and <code>exports</code>;</li>
+<li>verifies files referenced by <code>main</code>, <code>module</code>, <code>types</code>, and <code>bin</code>, plus any configured <code>requiredFiles</code>;</li>
 <li>creates a tarball and installs it with production dependencies in a temporary directory;</li>
-<li>rejects packaged <code>src</code>, <code>test</code>, and <code>.env</code> paths;</li>
-<li>loads both <code>require</code> and <code>import</code> entry points for a library; or</li>
-<li>runs the first declared CLI binary with <code>--version</code>.</li>
+<li>rejects packaged top-level <code>src</code> and <code>test</code> entries, and any top-level name starting with <code>.env</code> (such as <code>.env.test</code> or <code>.envrc</code>);</li>
+<li>for a package without <code>bin</code>, loads the <code>exports[&quot;.&quot;]</code> <code>require</code> entry (falling back to <code>main</code>), and the <code>import</code> entry when it names a different file and the runtime supports ESM; or</li>
+<li>for a package with <code>bin</code>, runs the first declared binary with <code>--version</code>.</li>
 </ul>
 <p>It checks package structure and entry-point loading. It does not run the package's test suite or prove every runtime path works.</p>
 <h2 id="options" class="tsd-anchor-link">Options<a href="#options" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
