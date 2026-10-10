@@ -4,9 +4,36 @@
  */
 
 import assert from 'assert';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { CheckPrepublish } from '../../src/checker.ts';
-import { stringIncludes } from '../lib/compat.ts';
+import { arrayFind, stringEndsWith, stringIncludes } from '../lib/compat.ts';
 import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../lib/test-helpers.ts';
+
+/**
+ * Add a harmless env-style file to the fixture's "files" and prove the installed tarball ships it
+ */
+function shipEnvFile(packageDir: string, fileName: string): void {
+  writeFileSync(join(packageDir, fileName), 'NCP_FIXTURE_VALUE=harmless\n');
+  const packageJsonPath = join(packageDir, 'package.json');
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+  packageJson.files.push(fileName);
+  writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+
+  const installDir = createTempDir('env-ship-');
+  try {
+    runCommand('npm pack', packageDir);
+    const tarball = arrayFind(readdirSync(packageDir), (f: string) => stringEndsWith(f, '.tgz'));
+    assert.ok(tarball, 'Tarball should exist');
+    runCommand('npm init -y', installDir);
+    const installResult = runCommand(`npm install --production "${join(packageDir, tarball)}"`, installDir);
+    assert.equal(installResult.exitCode, 0, 'npm install should succeed');
+    assert.ok(existsSync(join(installDir, 'node_modules', 'test-minimal-module', fileName)), `${fileName} should ship in the tarball`);
+    cleanupTempDir(join(packageDir, tarball));
+  } finally {
+    cleanupTempDir(installDir);
+  }
+}
 
 describe('Full Package Verification', () => {
   let tempDir: string;
@@ -157,6 +184,33 @@ describe('Full Package Verification', () => {
     assert.ok(
       logs.some((log) => stringIncludes(log, 'Verifying')),
       'Should log verification messages'
+    );
+  });
+
+  it('should reject a packaged .env.test without a packaged .env', async () => {
+    copyFixture('minimal-module', tempDir);
+    shipEnvFile(tempDir, '.env.test');
+    assert.ok(!existsSync(join(tempDir, '.env')), 'Fixture should not contain .env');
+
+    const result = await new CheckPrepublish({ packageDir: tempDir, skipBuild: true }).check();
+
+    assert.equal(result.success, false, 'Should fail when .env.test is packaged');
+    assert.ok(
+      result.errors.some((e) => stringIncludes(e, 'should NOT be in package: .env.test')),
+      'Should name .env.test'
+    );
+  });
+
+  it('should reject a packaged .envrc', async () => {
+    copyFixture('minimal-module', tempDir);
+    shipEnvFile(tempDir, '.envrc');
+
+    const result = await new CheckPrepublish({ packageDir: tempDir, skipBuild: true }).check();
+
+    assert.equal(result.success, false, 'Should fail when .envrc is packaged');
+    assert.ok(
+      result.errors.some((e) => stringIncludes(e, 'should NOT be in package: .envrc')),
+      'Should name .envrc'
     );
   });
 

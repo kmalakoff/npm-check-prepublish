@@ -1,341 +1,73 @@
-# Architecture & Design Decisions
+# Architecture
 
-## Overview
+`npm-check-prepublish` checks the package npm would publish: its build, its declared files, the packed tarball, and whether an installed copy loads or runs. One class, `CheckPrepublish` in `src/checker.ts`, does the work; `src/cli.ts` (the `ncp` and `npm-check-prepublish` binaries) collects options and exits.
 
-`npm-check-prepublish` is a reusable library that extracts the common verification logic from all MCP server packages. It provides a standardized way to test packages before publishing.
+## Package type
 
-## Design Goals
+`package.json` decides the type once, in the constructor:
 
-1. **DRY Principle**: Eliminate duplicate code across 5+ server packages
-2. **Flexibility**: Allow customization while providing sensible defaults
-3. **Type Safety**: Fully typed TypeScript API
-4. **Production-Grade**: Use MCP SDK's built-in stdio transport for robust process management
-5. **Easy Migration**: Simple migration path from standalone scripts
+- A `bin` field makes the package a `cli`.
+- Anything else is a `module`.
 
-## Core Architecture
+A package with both `bin` and library entries is checked as a `cli`: its binary runs, and its module entries are not loaded.
 
-### Class-Based Design
+## Steps
+
+`check()` runs four steps in order. A failing step records its error and the next step still runs, so one run reports every failure. The result is `{ success, errors, packageInfo }`, with `errors` as strings.
+
+| Step | What runs | Skip option / flag |
+| --- | --- | --- |
+| 1. Build | `npm run build` in `packageDir`, only when `scripts.build` exists | `skipBuild` / `--no-build` |
+| 2. Required files | `package.json`, `main`, `module`, `types`, every `bin` target, then `requiredFiles`, each checked in `packageDir` | `skipCheckRequiredFiles` / `--no-check-required-files` |
+| 3. Package | `npm pack`, then `npm init -y` and `npm install <tarball> --production` in a temporary project; the same required files must exist in the installed copy, and no top-level entry may be named `src` or `test` or start with `.env` | `skipPackage` / `--no-pack` |
+| 4. Runtime | `module`: load the `require` entry, then the `import` entry when it names a different file and the runtime supports ESM. `cli`: run `node_modules/.bin/<name> --version` | `skipCheckImport` / `--no-check-import`, `skipCheckBin` / `--no-check-bin` |
+
+Step 4 packs and installs its own copy, so `--no-pack` skips only step 3's structure checks.
+
+Entry resolution follows `exports["."]` (or a top-level `exports` string or condition map), takes the requested condition, then `default`, then `main`, then `./index.js`. Files named only by `typings` or by other `exports` conditions are not checked in step 2; a missing entry surfaces when step 4 loads it. Loading goes through `module-compat`'s `loadModule`, which requires CommonJS and imports ESM.
+
+The binary name is the first key of an object `bin`, or the package name without its scope for a string `bin`. The installed package path accounts for scopes: `@scope/name` resolves to `node_modules/@scope/name`.
+
+Temporary projects live under `os.tmpdir()/npm-check-prepublish/pkg-check-*`. Step 3 attempts to remove its project and tarball whether or not it passed, and logs a warning when removal fails. Step 4 removes them only after a successful load or run, and leaves them behind when that step fails.
+
+## Output
+
+Progress goes to `logger.log` (default `console`). The build and step 3's install inherit the process's stdio, so their output reaches the terminal even with a custom logger.
+
+The CLI exits `0` on success and `21` on any failure.
+
+## Configuration
+
+Options come from three sources:
+
+1. CLI flags, which can only turn a check off.
+2. `.ncprc.json` in the package directory. When the file exists and parses, it is the whole file configuration, and the `ncp` field below is not read.
+3. The `ncp` field of `package.json`.
+
+A file that is missing or does not parse is ignored, and the next source is used. A skip flag set on the CLI wins over the file value. `mergeConfig` concatenates `requiredFiles`, file entries first. The `CheckPrepublish` constructor itself reads no configuration file.
+
+`loadConfig(packageDir)` and `mergeConfig(fileConfig, options)` are exported, so a script can apply the same precedence the CLI uses. The file format, `FileConfig`, accepts `requiredFiles` and the five skip options; `packageDir` and `logger` are programmatic only.
+
+## Compatibility
+
+`engines.node` is `>=0.12`. String and object fallbacks live in `src/compat.ts`; filesystem helpers in `src/fs-compat.ts` wrap `fs-remove-compat`, `mkdirp-classic`, and `temp-suffix`; CLI parsing and exiting by `getopts-compat` and `exit-compat`, and module loading by `module-compat`. `bin/cli.js` loads the ESM build where `require` is absent and the CJS build otherwise.
+
+## Source layout
 
 ```
-CheckPrepublish
-├── Configuration (VerifierConfig)
-├── Phase 1: Built Package Verification
-│   ├── Build package
-│   ├── Verify file structure
-│   ├── Start server
-│   ├── Run custom tests
-│   └── Cleanup
-└── Phase 2: Production Simulation
-    ├── Create tarball (npm pack)
-    ├── Install in temp directory
-    ├── Verify package contents
-    ├── Start installed server
-    ├── Run custom tests
-    └── Cleanup
+src/
+├── index.ts           # Public exports
+├── checker.ts         # CheckPrepublish and the four steps
+├── config.ts          # loadConfig, mergeConfig, FileConfig
+├── cli.ts             # ncp / npm-check-prepublish
+├── types.ts           # VerifyConfig, VerificationResult, PackageInfo, Logger
+├── compat.ts          # String and object fallbacks
+├── fs-compat.ts       # Temp directory, mkdirp, and remove helpers
+└── lib/loadModule.ts  # Promise wrapper over module-compat's loadModule
 ```
 
-### Key Design Decisions
-
-#### 1. Configuration-Based Approach
-
-Instead of inheritance or complex abstractions, we use a simple configuration object:
-
-```typescript
-interface VerifierConfig {
-  // Required
-  packageDir: string;
-  packageName: string;
-  serverName: string;
-
-  // Optional with sensible defaults
-  requiredFiles?: string[];
-  excludedPaths?: string[];
-  envFile?: string;
-  buildCommand?: string;
-  serverBin?: string;
-  serverArgs?: string[];
-  runPhase2?: boolean;
-
-  // Hooks for customization
-  setupEnv?: (phase: 1 | 2, isProduction: boolean) => Record<string, string>;
-  testBuiltPackage?: (client: Client) => Promise<void>;
-  testInstalledPackage?: (client: Client) => Promise<void>;
-}
-```
-
-**Why?**
-- Simple to understand and use
-- No need to learn class hierarchies
-- Easy to add new options
-- Clear separation of concerns
-
-#### 2. Hook-Based Testing
-
-Custom tests are provided via async functions that receive an MCP client:
-
-```typescript
-async testBuiltPackage(client) {
-  const result = await client.callTool({
-    name: 'my-tool',
-    arguments: { /* ... */ },
-  });
-
-  if (!result.content) {
-    throw new Error('Tool failed');
-  }
-}
-```
-
-**Why?**
-- Each package has different tools to test
-- Allows full control over test logic
-- Errors propagate naturally via exceptions
-- Client is already connected and ready
-
-#### 3. Two-Phase Separation
-
-Phase 1 and Phase 2 are clearly separated with independent test hooks:
-
-```typescript
-setupEnv(phase, isProduction) {
-  if (phase === 1) {
-    // Development environment
-    return { ...process.env, LOG_LEVEL: 'error' };
-  }
-  // Phase 2: Minimal production environment
-  return { LOG_LEVEL: 'error', API_KEY: process.env.API_KEY };
-}
-```
-
-**Why?**
-- Different phases need different environments
-- Phase 1 can use full `process.env`
-- Phase 2 should use minimal env (production simulation)
-- Clear which phase is running
-
-#### 4. Smart Package Path Detection
-
-Handles both scoped and non-scoped packages:
-
-```typescript
-private getInstalledPackagePath(testDir: string): string {
-  const packageName = this.packageJson.name;
-
-  if (packageName.startsWith('@')) {
-    const [scope, name] = packageName.split('/');
-    return join(testDir, 'node_modules', scope, name);
-  }
-
-  return join(testDir, 'node_modules', packageName);
-}
-```
-
-**Why?**
-- Works with `@mcpeasy/mcp-pdf` and `mcp-pdf` formats
-- No need for users to specify node_modules path
-- Handles npm's directory structure automatically
-
-#### 5. Sensible Defaults
-
-Every server needs similar files, so we provide defaults:
-
-```typescript
-const DEFAULT_REQUIRED_FILES = [
-  'bin/server.js',
-  'dist/esm/index.js',
-  'dist/cjs/index.js',
-  'dist/esm/index.d.ts',
-  'package.json',
-];
-
-const DEFAULT_EXCLUDED_PATHS = ['test', 'src'];
-```
-
-**Why?**
-- 80% of packages use the same structure
-- Reduces boilerplate in check scripts
-- Can be overridden when needed
-- Documents expected structure
-
-## Reusability Analysis
-
-### What's Shared (90% of code)
-
-- Build execution
-- File structure verification
-- Tarball creation and installation
-- Package path detection
-- Server startup orchestration
-- Client connection management
-- Cleanup and error handling
-- Logging and output formatting
-
-### What's Custom (10% of code)
-
-- Which tools to test
-- Tool arguments
-- Expected responses
-- Environment variables
-- OAuth/credentials setup
-
-## Migration Impact
-
-### Before (Per Package)
-
-Each package had ~350 lines of verification code:
-- `check-package.ts` (350 lines)
-- Duplicated across 5+ packages
-- Total: ~1,750+ lines
-
-### After (With npm-check-prepublish)
-
-Each package has ~50 lines:
-- Import CheckPrepublish
-- Configure
-- Define custom tests
-- Total: ~250 lines + shared library
-
-**Savings**: ~1,500 lines of duplicated code eliminated
-
-### Maintenance Benefits
-
-**Before**: Fix a bug in verification → Update 5+ files
-**After**: Fix a bug in verification → Update 1 file, all packages benefit
-
-## API Design Principles
-
-### 1. Progressive Disclosure
-
-Start simple:
-```typescript
-new CheckPrepublish({
-  packageDir: PACKAGE_DIR,
-  packageName: '@mcpeasy/mcp-pdf',
-  serverName: 'pdf',
-});
-```
-
-Add complexity as needed:
-```typescript
-new CheckPrepublish({
-  packageDir: PACKAGE_DIR,
-  packageName: '@mcpeasy/mcp-pdf',
-  serverName: 'pdf',
-  envFile: '.env.test',
-  setupEnv: async (phase) => { /* custom */ },
-  testBuiltPackage: async (client) => { /* custom */ },
-});
-```
-
-### 2. Type Safety
-
-Full TypeScript support:
-- All options are typed
-- MCP Client is properly typed
-- Result objects are typed
-- IDE autocomplete works
-
-### 3. Fail Fast
-
-Errors are thrown immediately:
-- Missing required files → Error in Phase 1
-- Missing dependencies → Error in Phase 2
-- Tool failures → Test throws error
-- Invalid config → Error on construction
-
-### 4. Clear Feedback
-
-Output is color-coded and structured:
-```
-=========================================
-Phase 1: Built Package Verification
-=========================================
-
-Package: @mcpeasy/mcp-pdf@1.2.0
-
-Building package...
-✅ Build successful
-
-Verifying package structure...
-✅ Package structure valid
-```
-
-## Extension Points
-
-### Current Hooks
-
-1. `setupEnv`: Customize environment variables
-2. `testBuiltPackage`: Custom Phase 1 tests
-3. `testInstalledPackage`: Custom Phase 2 tests
-
-### Future Extension Ideas
-
-1. **Pre/Post Build Hooks**: Run commands before/after build
-2. **Custom Validators**: Register file validators
-3. **Parallel Testing**: Test multiple tools concurrently
-4. **Report Generation**: JSON/HTML test reports
-5. **Performance Metrics**: Track server startup time
-6. **Snapshot Testing**: Compare outputs with snapshots
-
-## Dependencies
-
-### Runtime Dependencies
-
-- `@modelcontextprotocol/sdk`: MCP client and stdio transport
-
-**Why this dependency?**
-- Essential for all MCP servers
-- Provides built-in stdio transport with process management
-- Production-tested and maintained by the MCP team
-- No additional install burden
-
-### Dev Dependencies
-
-- Standard TypeScript tooling
-- No test framework (yet) - packages test themselves
-
-## File Structure
-
-```
-npm-check-prepublish/
-├── src/
-│   ├── index.ts          # Public API exports
-│   ├── types.ts          # TypeScript interfaces
-│   ├── checker.ts       # Core CheckPrepublish class
-│   └── logger.ts         # ANSI logging utility
-├── package.json
-├── tsconfig.json
-├── biome.json           # Code formatting
-├── README.md            # User documentation
-├── EXAMPLES.md          # Usage examples
-├── ARCHITECTURE.md      # This file
-└── LICENSE
-```
-
-## Future Considerations
-
-### Potential Improvements
-
-1. **Caching**: Cache npm pack tarballs for faster re-runs
-2. **Parallel Execution**: Run Phase 1 and Phase 2 in parallel (when safe)
-3. **Watch Mode**: Re-run verification on file changes
-4. **Custom Reporters**: Pluggable output formats
-5. **CI Integration**: GitHub Actions helper
-6. **Benchmark Mode**: Track verification performance over time
-
-### Non-Goals
-
-- **Not a test framework**: Doesn't replace unit tests
-- **Not a build tool**: Doesn't handle building
-- **Not a publish tool**: Doesn't publish to npm
-- **Not package-specific**: Won't have special code for each package type
-
-## Conclusion
-
-This design balances:
-- **Simplicity**: Easy to use and understand
-- **Flexibility**: Customizable for different packages
-- **Robustness**: Production-grade error handling
-- **Maintainability**: Single source of truth for verification logic
-
-The hook-based approach allows each package to define its unique test logic while sharing the common verification infrastructure.
+## Non-goals
+
+- It does not run the package's test suite or exercise every runtime path; it proves the published shape installs and its entry loads.
+- It runs the package's own `build` script, but it is not a build tool.
+- It never publishes.

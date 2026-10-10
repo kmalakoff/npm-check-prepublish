@@ -266,22 +266,16 @@ export class CheckPrepublish {
       }
       this.logger.log('✅ Required files present in installed package');
 
-      // Verify excluded files are NOT in package
+      // Verify excluded files are NOT in package: dot-prefixed paths match top-level names (.env matches .env.test);
+      // others are checked through the filesystem, which follows its own case sensitivity
+      const entries = readdirSync(packageDir);
       for (const path of EXCLUDED_PATHS) {
-        const fullPath = join(packageDir, path);
-        if (existsSync(fullPath)) {
-          // Check if it's a directory or starts with pattern
-          if (stringStartsWith(path, '.')) {
-            // For patterns like .env*, check all files starting with it
-            const files = readdirSync(packageDir);
-            for (const f of files) {
-              if (stringStartsWith(f, path)) {
-                throw new Error(`File/directory should NOT be in package: ${f}`);
-              }
-            }
-          } else if (existsSync(fullPath)) {
-            throw new Error(`File/directory should NOT be in package: ${path}`);
+        if (stringStartsWith(path, '.')) {
+          for (const entry of entries) {
+            if (stringStartsWith(entry, path)) throw new Error(`File/directory should NOT be in package: ${entry}`);
           }
+        } else if (existsSync(join(packageDir, path))) {
+          throw new Error(`File/directory should NOT be in package: ${path}`);
         }
       }
       this.logger.log('✅ Excluded files not in package (src/, test/, .env*)\n');

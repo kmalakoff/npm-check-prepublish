@@ -1,14 +1,15 @@
 /**
  * npm-check-prepublish
  *
- * Production-grade verification tool for npm packages (modules, CLI tools, MCP servers)
+ * Production-grade verification tool for npm packages (modules and CLI tools)
  *
  * @example
  * ```typescript
  * import { CheckPrepublish } from 'npm-check-prepublish';
  *
  * const checker = new CheckPrepublish({
- *   testFile: './scripts/check-tests.ts',
+ *   packageDir: process.cwd(),
+ *   requiredFiles: ['LICENSE'],
  * });
  *
  * const result = await checker.check();

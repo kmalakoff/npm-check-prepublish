@@ -22,11 +22,11 @@ Run it directly with `npx npm-check-prepublish` or the shorter installed binary,
 
 The check runs `npm run build` when that script exists. It then:
 
-- verifies files referenced by `main`, `module`, `types`, `typings`, `bin`, and `exports`;
+- verifies files referenced by `main`, `module`, `types`, and `bin`, plus any configured `requiredFiles`;
 - creates a tarball and installs it with production dependencies in a temporary directory;
-- rejects packaged `src`, `test`, and `.env` paths;
-- loads both `require` and `import` entry points for a library; or
-- runs the first declared CLI binary with `--version`.
+- rejects packaged top-level `src` and `test` entries, and any top-level name starting with `.env` (such as `.env.test` or `.envrc`);
+- for a package without `bin`, loads the `exports["."]` `require` entry (falling back to `main`), and the `import` entry when it names a different file and the runtime supports ESM; or
+- for a package with `bin`, runs the first declared binary with `--version`.
 
 It checks package structure and entry-point loading. It does not run the package's test suite or prove every runtime path works.
 
