@@ -49,12 +49,12 @@ export function copyFixture(fixtureName: string, destDir: string): void {
 /**
  * Run command and return output
  */
-export function runCommand(cmd: string, cwd: string): { stdout: string; exitCode: number } {
+export function runCommand(cmd: string, cwd: string): { stdout: string; stderr: string; exitCode: number } {
   try {
     const stdout = execSync(cmd, { cwd, encoding: 'utf8', stdio: 'pipe' });
-    return { stdout, exitCode: 0 };
+    return { stdout, stderr: '', exitCode: 0 };
   } catch (error: unknown) {
-    const execError = error as { stdout?: string; status?: number };
-    return { stdout: execError.stdout || '', exitCode: execError.status || 1 };
+    const execError = error as { stdout?: string; stderr?: string; status?: number };
+    return { stdout: execError.stdout || '', stderr: execError.stderr || '', exitCode: execError.status || 1 };
   }
 }

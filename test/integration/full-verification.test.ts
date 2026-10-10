@@ -5,10 +5,36 @@
 
 import assert from 'assert';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
 import { join } from 'path';
 import { CheckPrepublish } from '../../src/checker.ts';
-import { arrayFind, stringEndsWith, stringIncludes } from '../lib/compat.ts';
+import { arrayFind, assertDeepStrictEqual, stringEndsWith, stringIncludes } from '../lib/compat.ts';
 import { cleanupTempDir, copyFixture, createTempDir, runCommand } from '../lib/test-helpers.ts';
+
+// Where CheckPrepublish creates its temporary install projects
+const CHECK_TMP_DIR = join(tmpdir(), 'npm-check-prepublish');
+
+function listInstallProjects(): string[] {
+  return existsSync(CHECK_TMP_DIR) ? readdirSync(CHECK_TMP_DIR).sort() : [];
+}
+
+/**
+ * Run a check expected to fail in step 4 and prove it left no install project, tarball or cleanup warning behind
+ */
+async function assertStep4FailureCleansUp(packageDir: string, tarball: string, expectedError: string): Promise<void> {
+  const logs: string[] = [];
+  const before = listInstallProjects();
+  const result = await new CheckPrepublish({ packageDir, skipBuild: true, logger: { log: (msg: string) => logs.push(msg) } }).check();
+
+  assert.equal(result.success, false, 'Step 4 should fail');
+  assert.ok(
+    result.errors.some((e) => stringIncludes(e, expectedError)),
+    `Should keep the original failure: ${result.errors.join('; ')}`
+  );
+  assert.ok(!logs.some((log) => stringIncludes(log, 'Warning: Failed to cleanup')), 'Cleanup should succeed');
+  assert.ok(!existsSync(join(packageDir, tarball)), `${tarball} should be removed`);
+  assertDeepStrictEqual(listInstallProjects(), before, 'Install project should be removed');
+}
 
 /**
  * Add a harmless env-style file to the fixture's "files" and prove the installed tarball ships it
@@ -212,6 +238,20 @@ describe('Full Package Verification', () => {
       result.errors.some((e) => stringIncludes(e, 'should NOT be in package: .envrc')),
       'Should name .envrc'
     );
+  });
+
+  it('should clean up after a packed module that throws on load', async () => {
+    copyFixture('minimal-module', tempDir);
+    writeFileSync(join(tempDir, 'dist', 'index.js'), "throw new Error('ncp fixture load failure');\n");
+
+    await assertStep4FailureCleansUp(tempDir, 'test-minimal-module-1.0.0.tgz', 'ncp fixture load failure');
+  });
+
+  it('should clean up after a packed CLI that fails', async () => {
+    copyFixture('cli-tool', tempDir);
+    writeFileSync(join(tempDir, 'bin', 'cli.js'), '#!/usr/bin/env node\nprocess.exit(3);\n');
+
+    await assertStep4FailureCleansUp(tempDir, 'test-cli-tool-1.0.0.tgz', 'CLI execution failed');
   });
 
   it('should check complete workflow: build -> pack -> install -> test', async () => {

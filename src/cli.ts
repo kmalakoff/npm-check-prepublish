@@ -81,9 +81,6 @@ export default async function cli(argv: string[]): Promise<void> {
 
   const packageDir = process.cwd();
 
-  // Load config from .ncprc.json or package.json "ncp" field
-  const fileConfig = loadConfig(packageDir);
-
   // CLI args (only set if explicitly passed)
   const cliConfig = {
     packageDir,
@@ -94,10 +91,16 @@ export default async function cli(argv: string[]): Promise<void> {
     skipCheckBin: options['check-bin'] ? undefined : true,
   };
 
-  // Merge: CLI overrides file config
-  const config = mergeConfig(fileConfig, cliConfig);
+  // Load config from .ncprc.json or package.json "ncp" field, merge (CLI overrides file config), and read the package
+  let checker: CheckPrepublish;
+  try {
+    checker = new CheckPrepublish(mergeConfig(loadConfig(packageDir), cliConfig));
+  } catch (err) {
+    console.error((err as Error).message);
+    exit(ERROR_CODE);
+    return;
+  }
 
-  const checker = new CheckPrepublish(config);
   const result = await checker.check();
   exit(result.success ? 0 : ERROR_CODE);
 }

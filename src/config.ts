@@ -10,10 +10,13 @@
  * 2. .ncprc.json file
  * 3. package.json "ncp" field
  * 4. Defaults
+ *
+ * A missing file falls through to the next source; a file that exists but cannot be read or parsed throws.
  */
 
-import { existsSync, readFileSync } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
+import readJsonFile from './lib/readJsonFile.ts';
 import type { VerifyConfig } from './types.ts';
 
 /**
@@ -34,30 +37,19 @@ export interface FileConfig {
  *
  * @param packageDir - Directory to search for config files (defaults to cwd)
  * @returns Loaded configuration or empty object if no config found
+ * @throws If a config file exists but cannot be read or parsed; the message names the file
  */
 export function loadConfig(packageDir: string = process.cwd()): FileConfig {
   // Try .ncprc.json first (higher priority)
   const ncprcPath = join(packageDir, '.ncprc.json');
-  if (existsSync(ncprcPath)) {
-    try {
-      const content = readFileSync(ncprcPath, 'utf8');
-      return JSON.parse(content) as FileConfig;
-    } catch {
-      // Invalid JSON in .ncprc.json - silently ignore
-    }
-  }
+  if (existsSync(ncprcPath)) return readJsonFile(ncprcPath) as FileConfig;
 
   // Fall back to package.json "ncp" field
   const packageJsonPath = join(packageDir, 'package.json');
   if (existsSync(packageJsonPath)) {
-    try {
-      const content = readFileSync(packageJsonPath, 'utf8');
-      const packageJson = JSON.parse(content);
-      if (packageJson.ncp && typeof packageJson.ncp === 'object') {
-        return packageJson.ncp as FileConfig;
-      }
-    } catch {
-      // Invalid package.json - silently ignore
+    const packageJson = readJsonFile(packageJsonPath);
+    if (packageJson.ncp && typeof packageJson.ncp === 'object') {
+      return packageJson.ncp as FileConfig;
     }
   }
 

@@ -3,10 +3,12 @@
  */
 
 import assert from 'assert';
+import { mkdirSync, writeFileSync } from 'fs';
 import path from 'path';
 import url from 'url';
 import { loadConfig, mergeConfig } from '../../src/config.ts';
-import { assertDeepStrictEqual } from '../lib/compat.ts';
+import { assertDeepStrictEqual, stringIncludes } from '../lib/compat.ts';
+import { cleanupTempDir, createTempDir } from '../lib/test-helpers.ts';
 
 const __dirname = path.dirname(typeof __filename !== 'undefined' ? __filename : url.fileURLToPath(import.meta.url));
 const FIXTURES = path.join(__dirname, '..', 'fixtures');
@@ -50,6 +52,51 @@ describe('Config Loader', () => {
       const config = loadConfig(path.join(FIXTURES, 'non-existent'));
 
       assertDeepStrictEqual(config, {});
+    });
+
+    describe('unreadable or malformed files', () => {
+      let tempDir: string;
+
+      beforeEach(() => {
+        tempDir = createTempDir('config-');
+      });
+
+      afterEach(() => {
+        cleanupTempDir(tempDir);
+      });
+
+      function assertThrowsNaming(fileName: string): void {
+        assert.throws(
+          () => loadConfig(tempDir),
+          (err: Error) => stringIncludes(err.message, path.join(tempDir, fileName))
+        );
+      }
+
+      it('should throw naming a malformed .ncprc.json instead of falling back to package.json', () => {
+        writeFileSync(path.join(tempDir, '.ncprc.json'), '{ "skipBuild": true,');
+        writeFileSync(path.join(tempDir, 'package.json'), JSON.stringify({ name: 'x', version: '1.0.0', ncp: { skipCheckBin: true } }));
+
+        assertThrowsNaming('.ncprc.json');
+      });
+
+      it('should throw naming an unreadable .ncprc.json', () => {
+        mkdirSync(path.join(tempDir, '.ncprc.json'));
+
+        assertThrowsNaming('.ncprc.json');
+      });
+
+      it('should throw naming a malformed package.json', () => {
+        writeFileSync(path.join(tempDir, 'package.json'), '{ "name": "x", "ncp": {');
+
+        assertThrowsNaming('package.json');
+      });
+
+      it('should not read package.json when .ncprc.json is valid', () => {
+        writeFileSync(path.join(tempDir, '.ncprc.json'), JSON.stringify({ skipBuild: true }));
+        writeFileSync(path.join(tempDir, 'package.json'), '{ "name": "x", "ncp": {');
+
+        assertDeepStrictEqual(loadConfig(tempDir), { skipBuild: true });
+      });
     });
   });
 

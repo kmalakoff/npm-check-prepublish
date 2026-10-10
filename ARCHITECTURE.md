@@ -28,7 +28,7 @@ Entry resolution follows `exports["."]` (or a top-level `exports` string or cond
 
 The binary name is the first key of an object `bin`, or the package name without its scope for a string `bin`. The installed package path accounts for scopes: `@scope/name` resolves to `node_modules/@scope/name`.
 
-Temporary projects live under `os.tmpdir()/npm-check-prepublish/pkg-check-*`. Step 3 attempts to remove its project and tarball whether or not it passed, and logs a warning when removal fails. Step 4 removes them only after a successful load or run, and leaves them behind when that step fails.
+Temporary projects live under `os.tmpdir()/npm-check-prepublish/pkg-check-*`. Steps 3 and 4 each attempt to remove their project and tarball whether or not the step passed, and log a warning when removal fails.
 
 ## Output
 
@@ -44,7 +44,7 @@ Options come from three sources:
 2. `.ncprc.json` in the package directory. When the file exists and parses, it is the whole file configuration, and the `ncp` field below is not read.
 3. The `ncp` field of `package.json`.
 
-A file that is missing or does not parse is ignored, and the next source is used. A skip flag set on the CLI wins over the file value. `mergeConfig` concatenates `requiredFiles`, file entries first. The `CheckPrepublish` constructor itself reads no configuration file.
+A missing file is skipped, and the next source is used. A file that exists but cannot be read or parsed is an error naming that file. The CLI prints that error, or one for a missing or unreadable `package.json`, and exits `21` before running any check. A skip flag set on the CLI wins over the file value. `mergeConfig` concatenates `requiredFiles`, file entries first. The `CheckPrepublish` constructor itself reads no configuration file.
 
 `loadConfig(packageDir)` and `mergeConfig(fileConfig, options)` are exported, so a script can apply the same precedence the CLI uses. The file format, `FileConfig`, accepts `requiredFiles` and the five skip options; `packageDir` and `logger` are programmatic only.
 

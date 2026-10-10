@@ -1,11 +1,12 @@
 import { execSync } from 'child_process';
-import { existsSync, readdirSync, readFileSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 import { supportsESM } from 'module-compat';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { objectValues, stringStartsWith } from './compat.ts';
 import { mkdirpSync, mkdtempSync, rimrafSync } from './fs-compat.ts';
 import loadModule from './lib/loadModule.ts';
+import readJsonFile from './lib/readJsonFile.ts';
 import type { Logger, PackageExportsMap, PackageInfo, VerificationResult, VerifyConfig } from './types.ts';
 
 const EXCLUDED_PATHS = ['src', 'test', '.env'];
@@ -61,7 +62,7 @@ export class CheckPrepublish {
     if (!existsSync(packageJsonPath)) {
       throw new Error(`package.json not found at ${packageJsonPath}`);
     }
-    this.packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+    this.packageJson = readJsonFile(packageJsonPath);
 
     // Detect package type
     this.packageInfo = this.detectPackageType();
@@ -284,20 +285,26 @@ export class CheckPrepublish {
       this.errors.push(err.message);
       this.logger.log('❌ Package verification failed\n');
     } finally {
-      // Cleanup
-      if (testDir) {
-        try {
-          rimrafSync(testDir);
-        } catch (err) {
-          this.logger.log(`Warning: Failed to cleanup test directory: ${err}`);
-        }
+      this.cleanup(testDir, tarballPath);
+    }
+  }
+
+  /**
+   * Remove a check's temporary install project and tarball, warning rather than failing the check
+   */
+  private cleanup(testDir: string | null, tarballPath: string | null): void {
+    if (testDir) {
+      try {
+        rimrafSync(testDir);
+      } catch (err) {
+        this.logger.log(`Warning: Failed to cleanup test directory: ${err}`);
       }
-      if (tarballPath) {
-        try {
-          rimrafSync(tarballPath);
-        } catch (err) {
-          this.logger.log(`Warning: Failed to cleanup tarball: ${err}`);
-        }
+    }
+    if (tarballPath) {
+      try {
+        rimrafSync(tarballPath);
+      } catch (err) {
+        this.logger.log(`Warning: Failed to cleanup tarball: ${err}`);
       }
     }
   }
@@ -345,14 +352,17 @@ export class CheckPrepublish {
       return;
     }
 
+    let testDir: string | null = null;
+    let tarballPath: string | null = null;
+
     try {
       // Create temp directory and install package
-      const testDir = mkdtempSync(join(getTmpDir(), 'pkg-check-'));
+      testDir = mkdtempSync(join(getTmpDir(), 'pkg-check-'));
       const tarball = execSync('npm pack --silent', {
         cwd: this.config.packageDir,
         encoding: 'utf-8',
       }).trim();
-      const tarballPath = join(this.config.packageDir, tarball);
+      tarballPath = join(this.config.packageDir, tarball);
 
       // Create package.json in install directory so npm doesn't walk up to project root
       execSync('npm init -y', { cwd: testDir, stdio: 'pipe' });
@@ -381,14 +391,12 @@ export class CheckPrepublish {
           this.logger.log(`Skipped import condition: ESM requires Node 12+, current is ${process.version}\n`);
         }
       }
-
-      // Cleanup
-      rimrafSync(testDir);
-      rimrafSync(tarballPath);
     } catch (error) {
       const err = new Error(`Failed to import module: ${error}`);
       this.errors.push(err.message);
       this.logger.log('❌ Module import failed\n');
+    } finally {
+      this.cleanup(testDir, tarballPath);
     }
   }
 
@@ -400,14 +408,17 @@ export class CheckPrepublish {
       return;
     }
 
+    let testDir: string | null = null;
+    let tarballPath: string | null = null;
+
     try {
       // Create temp directory and install package
-      const testDir = mkdtempSync(join(getTmpDir(), 'pkg-check-'));
+      testDir = mkdtempSync(join(getTmpDir(), 'pkg-check-'));
       const tarball = execSync('npm pack --silent', {
         cwd: this.config.packageDir,
         encoding: 'utf-8',
       }).trim();
-      const tarballPath = join(this.config.packageDir, tarball);
+      tarballPath = join(this.config.packageDir, tarball);
 
       // Create package.json in install directory so npm doesn't walk up to project root
       execSync('npm init -y', { cwd: testDir, stdio: 'pipe' });
@@ -425,14 +436,12 @@ export class CheckPrepublish {
       this.logger.log(`Running CLI: ${binName} --version`);
       execSync(`${binPath} --version`, { stdio: 'pipe' });
       this.logger.log('✅ CLI executes successfully\n');
-
-      // Cleanup
-      rimrafSync(testDir);
-      rimrafSync(tarballPath);
     } catch (error) {
       const err = new Error(`CLI execution failed: ${error}`);
       this.errors.push(err.message);
       this.logger.log('❌ CLI execution failed\n');
+    } finally {
+      this.cleanup(testDir, tarballPath);
     }
   }
 }

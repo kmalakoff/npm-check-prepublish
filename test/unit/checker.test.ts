@@ -3,8 +3,32 @@
  */
 
 import assert from 'assert';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
 import { CheckPrepublish } from '../../src/checker.ts';
-import { arrayIncludes } from '../lib/compat.ts';
+import { arrayIncludes, stringIncludes } from '../lib/compat.ts';
+import { cleanupTempDir, createTempDir } from '../lib/test-helpers.ts';
+
+describe('Package Loading', () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = createTempDir('checker-');
+  });
+
+  afterEach(() => {
+    cleanupTempDir(tempDir);
+  });
+
+  it('should throw naming a malformed package.json', () => {
+    writeFileSync(join(tempDir, 'package.json'), '{ "name": "x",');
+
+    assert.throws(
+      () => new CheckPrepublish({ packageDir: tempDir }),
+      (err: Error) => stringIncludes(err.message, join(tempDir, 'package.json'))
+    );
+  });
+});
 
 describe('Package Type Detection', () => {
   it('should detect CLI tool type from bin field', () => {
