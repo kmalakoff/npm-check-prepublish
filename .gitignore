@@ -71,3 +71,4 @@ CLAUDE.md
 *.realm.lock
 *.realm.note
 *.realm.management
+.cache/
